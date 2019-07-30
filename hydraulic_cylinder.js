@@ -1,29 +1,3 @@
-/*
-Edition log:
-25.6.2019 - Larsen, Martin Kvisvik
-- Split code into code blocks to increase readability.
-- Add comments around code blocks.
-- Fixed typo in buckling safety factor rule.
-- Edited uiCalcMethods. Changed display options texts and made all calculation methods available for all cylinder types.
-- Added SF_required variable to buckling calculation methods and set it to 2.7 for accurate buckling calculations.
-- Edited impact test reference.
-26.6.2019 - Larsen, Martin Kvisvik
-- Removed impact test warning for cylinders for waterjet/steering application.
-- Added approval of manufacturer requirement warning for cylinders for waterjet/steering application.
-- Added "threaded (fixed)" and "threaded (pinned)" options to "end connection at the rod end".
-- Added round_to_decimal function to eliminate several instances of the same code.
-- Added documentation strings to the support functions.
-27.6.2019 - Larsen, Martin Kvisvik
-- Added additional thickness check for end covers for cylinders with end eye tube connections
-- Edited buckling configuration;
-  - "rodEnd" == "threaded_pinned" is considered non-clamped
-  - "rodEnd" == "threaded_fixed" is considered clamped
-  - Euler length and configuration is adjusted accordingly
-- Started editing the rules to utilize rule functions
-- Moved function declarations outside main application function
-- Moved global variables outside main application function
-*/
-
 'use strict';
 
 ////////////////////////////////////////////////////////////////
