@@ -39,33 +39,33 @@ var MatList = ["S355J2+N, EN10025-3",
 	"1.4404 EN 10088-3", 
 	"1.4403 EN 10088-3"];
 
-var f_y_S_355 = [[0, 16, 355, 355, 470], 
-	[16, 40, 345, 345, 470], 
-	[40, 63, 335, 335, 470], 
-	[63, 80, 325, 325, 470], 
-	[80, 100, 315, 315, 470], 
-	[100, 150, 295, 295, 450], 
-	[150, 200, 285, 285, 450], 
-	[200, 250, 285, 285, 450], 
-	[250, 400, 265, 265, 450]];
+var f_y_S_355 = [[0, 16, 355, 470], 
+	[16, 40, 345, 470], 
+	[40, 63, 335, 470], 
+	[63, 80, 325, 470], 
+	[80, 100, 315, 470], 
+	[100, 150, 295, 450], 
+	[150, 200, 285, 450], 
+	[200, 250, 285, 450], 
+	[250, 400, 265, 450]];
 
-var f_y_E_355 = [[0, 160, 450, 450, 580], 
-	[160, 400, 420, 420, 580]];
+var f_y_E_355 = [[0, 160, 450, 580], 
+	[160, 400, 420, 580]];
 
-var f_y_1_4462 = [[0, 16, 650, 650, 850], 
-	[16, 160, 450, 450, 650]];
+var f_y_1_4462 = [[0, 16, 650, 850], 
+	[16, 160, 450, 650]];
 
-var f_y_1_4460 = [[0, 10, 610, 610, 770], 
-	[10, 16, 560, 560, 770], 
-	[16, 160, 460, 460, 620]];
+var f_y_1_4460 = [[0, 10, 610, 770], 
+	[10, 16, 560, 770], 
+	[16, 160, 460, 620]];
 
-var f_y_1_4418QT760 = [[0, 400, 550, 550, 760]];
+var f_y_1_4418QT760 = [[0, 400, 550, 760]];
 
-var f_y_1_4418QT900 = [[0, 400, 700, 700, 900]];
+var f_y_1_4418QT900 = [[0, 400, 700, 900]];
 
-var f_y_1_4404 = [[0, 400, 235, 235, 500]];
+var f_y_1_4404 = [[0, 400, 235, 500]];
 
-var f_y_1_4403 = [[0, 400, 225, 225, 500]];
+var f_y_1_4403 = [[0, 400, 225, 500]];
 
 ////////////////////////////////////////////////////////////////
 ////////////////////// UTILITY FUNCTIONS ///////////////////////
@@ -86,6 +86,22 @@ function round_to_decimal(number, precision) {
     return Math.round(Math.pow(10, precision) * number) / Math.pow(10, precision);
   }
 } // End of round_to_decimal function
+
+function find_minimum(arr) {
+	if (arr.length == 0) {
+		return null;
+	}
+
+	var min = Infinity;
+	var x = undefined;
+	for (var i = 0; i < arr.length; i++) {
+		x = arr[i];
+		if (x < min) {
+			min = x;
+		}
+	}
+	return min;
+}
 
 function calc_inertia_moment(outer_diameter, inner_diameter) {
   /* Calculates the second moment of inertia for a circular cross section.
@@ -157,20 +173,36 @@ function get_yield_and_strength(thickness, material) {
 	:arg thickness: The shell thickness. (OD - ID) / 2.
 	:arg material: The material properties.
 	:return: list of three floats. */
+	var def = material.def;
   	var yieldTable = material.f_y;
-	var f_y = yieldTable[0][2]; // Yield at room temp
-	var f_yt = yieldTable[0][3]; // Yield at design temp
-	var TS = yieldTable[0][4]; // Tensile strength at room temp
-
-	for (var j = 0; j < yieldTable.length; j++) {
-		if (thickness >= yieldTable[j][0]) {
-			f_y = yieldTable[j][2];
-			f_yt = yieldTable[j][3];
-			TS = yieldTable[j][4];
+	
+	var f_y = undefined;
+	var f_yt = undefined;
+	var TS = undefined;
+	if (def == "standard") {
+		f_y = yieldTable[0][2];
+		f_yt = Infinity;
+		TS = yieldTable[0][3];
+		for (var j = 0; j < yieldTable.length; j++) {
+			if (thickness >= yieldTable[j][0] && thickness < yieldTable[j][1]) {
+				f_y = yieldTable[j][2];
+				TS = yieldTable[j][3];
+			}
+		}
+	} else if (def == "custom") {
+		f_y = yieldTable[0][2];
+		f_yt = yieldTable[0][3];
+		TS = yieldTable[0][4];
+		for (var j = 0; j < yieldTable.length; j++) {
+			if (thickness >= yieldTable[j][0] && thickness < yieldTable[j][1]) {
+				f_y = yieldTable[j][2];
+				f_yt = yieldTable[j][3];
+				TS = yieldTable[j][4];
+			}
 		}
 	}
-    
-  return [f_y, f_yt, TS];
+
+  	return [f_y, f_yt, TS];
 } // End of get_yield_and_strength function
 
 function calc_nominal_stress(thickness, factors, material) {
@@ -180,14 +212,13 @@ function calc_nominal_stress(thickness, factors, material) {
 	:arg thickness: The shell thickness.
 	:arg factors: Nominal stress weighting factors.
 	:arg material: The material properties. */
-	if (factors.len < 3) {
+	if (factors.length != 3) {
 		return;
 	}
-	var materialData = get_yield_and_strength(thickness, material)
-	var f_y = materialData[0];
-	var f_yt = materialData[1];
-	var TS = materialData[2];
-	var sigma = Math.min(f_y/factors[0], f_yt/factors[1], TS/factors[2]);
+
+	var data = get_yield_and_strength(thickness, material)
+	var fracs = data.map((e,i) => e / factors[i]);
+	var sigma = find_minimum(fracs);
 	return sigma;
 } // End of calc_nominal_stress function
 
@@ -597,7 +628,10 @@ var uiCalcMethod = {
 	    { text: "Method [3.3.3], stroke-pressure curve", value: "advanced-pressure" },
 	    { text: "Method [A.4]", value: "simple_acc" },
 	    { text: "Method [A.4], stroke-force curve", value: "advanced-force_acc" }, 
-	    { text: "Method [A.4], stroke-pressure curve", value: "advanced-pressure_acc" }];
+	    { text: "Method [A.4], stroke-pressure curve", value: "advanced-pressure_acc" }, 
+	    { text: "Method [A.5]", value: "simple_en" }, 
+	    { text: "Method [A.5], stroke-force curve", value: "advanced_force_en" }, 
+	    { text: "Method [A.5], stroke-pressure curve", value: "advanced_pressure_en" }];
     
     return items;
   }
@@ -676,10 +710,13 @@ var uiListMaterial = {
         value: {
           f_y: f_y,
           Rp1: Rp1[i],
+	  Rp1t: Rp1t[i],
           Reh: Reh[i],
+	  Ret: Ret[i],
           Rm: Rm[i],
           mat: mat_type,
-          name: mat_name[i]
+          name: mat_name[i],
+	  def: def[i]
         }
       });
     }
