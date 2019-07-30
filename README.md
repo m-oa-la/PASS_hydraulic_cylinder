@@ -1,1 +1,1 @@
-# PASS_hydraulic_cylinder
+# PASS module for hydraulic cylinders
