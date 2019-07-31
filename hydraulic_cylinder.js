@@ -498,7 +498,7 @@ function calc_bolts(set, error, warn, part_name, d_n_bolt, L_p_bolt,
 } // End of calc_bolts function
 
 function calc_buckling_sf_acc(set, rodEnd, delta_clearance, d_i, d_end_eye_rod, d_o, E, g, I1, I2, L, 
-	L_1, L_2, L_3, L_4, m_cyl, my_end_eye, sigma_rod, P_a) {
+	L1, L2, L3, m_cyl, my_end_eye, sigma_rod, P_a) {
 	/* Calculates the safety factor for a buckling element according to the method
 	 * in DNVGL-ST-0194 [A.4.3]. 
 	 * arg set: Pointer for setting variables. 
@@ -511,10 +511,9 @@ function calc_buckling_sf_acc(set, rodEnd, delta_clearance, d_i, d_end_eye_rod, 
 	 * arg I1: Second moment of inertia of the cylinder tube.
 	 * arg I2: Second moment of inertia of the cylinder rod.
 	 * arg L: Cylinder block length, sum of tube length and maximum visible rod length.
-	 * arg L_1: Cylinder tube length.
-	 * arg L_2: Maximum visible rod length (fully extracted).
-	 * arg L_3: Guiding length of piston in cylinder tube.
-	 * arg L_4: Minimum visible rod length (fully contracted).
+	 * arg L1: Cylinder tube length.
+	 * arg L2: Maximum visible rod length (fully extracted).
+	 * arg L3: Guiding length of piston in cylinder tube.
 	 * arg m_cyl: Mass of the cylinder (?).
 	 * arg my_end_eye: Friction coefficient for the end eye.
 	 * arg sigma_rod: The nominal stress in the rod.
@@ -530,12 +529,12 @@ function calc_buckling_sf_acc(set, rodEnd, delta_clearance, d_i, d_end_eye_rod, 
 	var pi = Math.PI;
 	var f_y = sigma_rod;
 	var A = calcArea(d_o, d_i);
-	var alpa_cyl = pi * L_2 / L;
+	var alpa_cyl = pi * L2 / L;
 
-	var AA = L_1 / (2 * I1) + L_2 / (2 * I2) 
+	var AA = L1 / (2 * I1) + L2 / (2 * I2) 
 		+ L / (4 * pi) * (1 / I1 - 1 / I2) * Math.sin(2 * alpa_cyl);
 	var BB = 4 * L / (3 * pi) * (1 / I2 - 1 / I1) * Math.pow(Math.sin(alpa_cyl), 3);
-	var CC = L_1 / (2 * I1) + L_2 / (2 * I2) 
+	var CC = L1 / (2 * I1) + L2 / (2 * I2) 
 		+ L / (8 * pi) * (1 / I1 - 1 / I2) * Math.sin(4 * alpa_cyl);
 	var DD = Math.pow(pi, 2) * E / (2 * L) * 1000;
 
@@ -544,7 +543,7 @@ function calc_buckling_sf_acc(set, rodEnd, delta_clearance, d_i, d_end_eye_rod, 
 	var c = 16 * Math.pow(DD, 2);
 
 	var P_E_acc = (-b - Math.sqrt(Math.pow(b, 2) - 4 * a * c)) / (2 * a) / 1000;
-	var f_0 = L_1 * delta_clearance / (L * L_3 * 2) 
+	var f_0 = L1 * delta_clearance / (L * L3 * 2) 
 		* Math.sqrt(Math.pow(pi, 2) * E * I2 / P_E_acc);
 
 	var FF = d_o / (2 * I2) * (my * r + f_0);
@@ -555,7 +554,7 @@ function calc_buckling_sf_acc(set, rodEnd, delta_clearance, d_i, d_end_eye_rod, 
 	var P = f_y * A / 2 + P_E_acc * (1 + A * FF - HH) / 2;
 	var SF_buckling_acc = P / (P_a * 1000);
 
-	set("SF_buckling_acc_" + L_2, SF_buckling_acc);
+	set("SF_buckling_acc_" + L2, SF_buckling_acc);
 
 	return SF_buckling_acc;
 } // End of calc_buckling_sf_acc function
@@ -3636,7 +3635,7 @@ define(function () {
             {
               var stroke = L2max - L4;
               SF = calc_buckling_sf_acc(this.set, rodEnd, delta_clearance, DI_rod, d_rod, 
-                OD_rod, E, g, I1, I2, L, L1, L2max, L3, L4, m_cyl, my_end_eye, 
+                OD_rod, E, g, I1, I2, L, L1, L2max, L3, m_cyl, my_end_eye, 
                 sigma_rod, Pa);
               SF = round_to_decimal(SF, 3);
               this.set("safety_buckling", SF);
@@ -3669,7 +3668,7 @@ define(function () {
                 var stroke = L2_chart - L4;
 
                 SF = calc_buckling_sf_acc(this.set, rodEnd, delta_clearance, DI_rod, d_rod, 
-                  OD_rod, E, g, I1, I2, L, L1, L2_chart, L3_chart, L4, m_cyl, my_end_eye, 
+                  OD_rod, E, g, I1, I2, L, L1, L2_chart, L3_chart, m_cyl, my_end_eye, 
                   sigma_rod, Pa);
                 SF = round_to_decimal(SF, 3);
 
@@ -3708,7 +3707,7 @@ define(function () {
                 var Pa = pCurve[i]["p"] * 0.1 * 0.001 * Math.PI * DI * DI / 4; //Force in kN
 
                 SF = calc_buckling_sf_acc(this.set, rodEnd, delta_clearance, DI_rod, d_rod, 
-                  OD_rod, E, g, I1, I2, L, L1, L2_chart, L3_chart, L4, m_cyl, my_end_eye, 
+                  OD_rod, E, g, I1, I2, L, L1, L2_chart, L3_chart, m_cyl, my_end_eye, 
                   sigma_rod, Pa);
 
                 SF = round_to_decimal(SF, 3);
@@ -4352,8 +4351,7 @@ define(function () {
               }
             }
           }
-        },
-        // End of fillet flange weld rule
+        }, // End of fillet flange weld rule
 
         // Partial penetration flange weld rule
         {
@@ -4468,15 +4466,10 @@ define(function () {
               }
             }
           }
-        }
-        // End of partial penetration flange weld rule
-      ]
-      // End of rules block
-    }
-    // End of app block
-  };
-  // End of return
-}
-// End of function
-);
-// End of definition
+        } // End of partial penetration flange weld rule
+      ] // End of rules block
+    } // End of app block
+  }; // End of return
+} // End of function
+); // End of definition
+
