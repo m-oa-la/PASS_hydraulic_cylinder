@@ -103,20 +103,22 @@ function find_minimum(arr) {
 	return min;
 }
 
-function calcArea(outerDiameter, innerDiameter) {
-	/* Calculates the area of a circular cross section. */
+function calcArea(outerD, innerD) {
+	/* Calculates the area of a circular cross section. 
+	 * arg outerD: outer diameter
+	 * arg innerD: inner diameter */
 	var pi = Math.PI;
-	return pi/4*Math.(pow(outerDiameter,2) - Math.pow(innerDiameter,2));
+	return pi/4*(Math.pow(outerD,2) - Math.pow(innerD,2));
 }
 
 function calcInertiaMoment(outerDiameter, innerDiameter) {
   /* Calculates the second moment of inertia for a circular cross section.
   :arg outer_diameter: The outer diameter of the cross section.
   :arg inner_diameter: The inner diameter of the cross section. */
-  return (Math.PI / 64) * (Math.pow(outerDiameter, 4) - Math.pow(innerDiameter, 4));
+  return (Math.PI/64) * (Math.pow(outerDiameter,4) - Math.pow(innerDiameter,4));
 } // End of calcInertiaMoment function
 
-function calc_z_factor(I_tube, I_rod, L_euler, L1_Le, L2max_Le) {
+function calcZFactor(I_tube, I_rod, L_euler, L1_Le, L2max_Le) {
   /* Calculates the Z-factor used in buckling calculations.
   :arg I_tube: The second moment of inertia of the tube.
   :arg I_rod: The second moment of inertia of the rod.
@@ -130,7 +132,7 @@ function calc_z_factor(I_tube, I_rod, L_euler, L1_Le, L2max_Le) {
     * Math.sin(2 * Math.PI * L1_Le / L_euler);
 
   return Z;
-} // End of calc_z_factor
+} // End of calcZFactor
 
 function calc_C2(DI, es, v, fmin, P) {
   /* Calculates the C2 factor used in the end cover thickness rules.
@@ -172,7 +174,7 @@ function calc_C2(DI, es, v, fmin, P) {
   return Math.abs(C2);
 } // End of calc_C2 function
 
-function get_yield_and_strength(thickness, material) {
+function getYieldAndStrength(thickness, material) {
 	/* Finds the yield stress and tensile strength of an circular 
 	cross section based on the material type, shell thickness and 
 	material.
@@ -209,7 +211,7 @@ function get_yield_and_strength(thickness, material) {
 	}
 
   	return [f_y, f_yt, TS];
-} // End of get_yield_and_strength function
+} // End of getYieldAndStrength function
 
 function calc_nominal_stress(thickness, factors, material) {
 	/* Calculates the nominal design stress based on the material yield stress
@@ -222,7 +224,7 @@ function calc_nominal_stress(thickness, factors, material) {
 		return;
 	}
 
-	var data = get_yield_and_strength(thickness, material)
+	var data = getYieldAndStrength(thickness, material)
 	var fracs = data.map((e,i) => e / factors[i]);
 	var sigma = find_minimum(fracs);
 	return sigma;
@@ -495,9 +497,8 @@ function calc_bolts(set, error, warn, part_name, d_n_bolt, L_p_bolt,
 	}
 } // End of calc_bolts function
 
-function calc_buckling_sf_acc(set, delta_clearance, d_i, 
-  d_end_eye_rod, d_o, E, g, I_1, I_2, L, L_1, L_2, L_3, L_4, m_cyl, my_end_eye, 
-  sigma_rod, P_a) {
+function calc_buckling_sf_acc(set, rodEnd, delta_clearance, d_i, d_end_eye_rod, d_o, E, g, I1, I2, L, 
+	L_1, L_2, L_3, L_4, m_cyl, my_end_eye, sigma_rod, P_a) {
 	/* Calculates the safety factor for a buckling element according to the method
 	 * in DNVGL-ST-0194 [A.4.3]. 
 	 * arg set: Pointer for setting variables. 
@@ -507,8 +508,8 @@ function calc_buckling_sf_acc(set, delta_clearance, d_i,
 	 * arg d_o: Piston rod outer diameter. 
 	 * arg E: E-modulus of the rod.
 	 * arg g: Gravitational acceleration.
-	 * arg I_1: Second moment of inertia of the cylinder tube.
-	 * arg I_2: Second moment of inertia of the cylinder rod.
+	 * arg I1: Second moment of inertia of the cylinder tube.
+	 * arg I2: Second moment of inertia of the cylinder rod.
 	 * arg L: Cylinder block length, sum of tube length and maximum visible rod length.
 	 * arg L_1: Cylinder tube length.
 	 * arg L_2: Maximum visible rod length (fully extracted).
@@ -518,18 +519,24 @@ function calc_buckling_sf_acc(set, delta_clearance, d_i,
 	 * arg my_end_eye: Friction coefficient for the end eye.
 	 * arg sigma_rod: The nominal stress in the rod.
 	 * arg P_a: Buckling force in kN. */
+	var r, my = undefined, undefined;
+	if (rodEnd == "endEye") {
+		r = d_end_eye_rod/2;
+		my = my_end_eye;
+	} else {
+		r = 0;
+		my = 0;
+	}
 	var pi = Math.PI;
 	var f_y = sigma_rod;
-	var A = pi * (Math.pow(d_o, 2) - Math.pow(d_i, 2)) / 4;
-	// var A = calcArea(d_o, d_i);
-	var r_end_eye_rod = d_end_eye_rod / 2;
+	var A = calcArea(d_o, d_i);
 	var alpa_cyl = pi * L_2 / L;
 
-	var AA = L_1 / (2 * I_1) + L_2 / (2 * I_2) 
-		+ L / (4 * pi) * (1 / I_1 - 1 / I_2) * Math.sin(2 * alpa_cyl);
-	var BB = 4 * L / (3 * pi) * (1 / I_2 - 1 / I_1) * Math.pow(Math.sin(alpa_cyl), 3);
-	var CC = L_1 / (2 * I_1) + L_2 / (2 * I_2) 
-		+ L / (8 * pi) * (1 / I_1 - 1 / I_2) * Math.sin(4 * alpa_cyl);
+	var AA = L_1 / (2 * I1) + L_2 / (2 * I2) 
+		+ L / (4 * pi) * (1 / I1 - 1 / I2) * Math.sin(2 * alpa_cyl);
+	var BB = 4 * L / (3 * pi) * (1 / I2 - 1 / I1) * Math.pow(Math.sin(alpa_cyl), 3);
+	var CC = L_1 / (2 * I1) + L_2 / (2 * I2) 
+		+ L / (8 * pi) * (1 / I1 - 1 / I2) * Math.sin(4 * alpa_cyl);
 	var DD = Math.pow(pi, 2) * E / (2 * L) * 1000;
 
 	var a = 4 * AA * CC - BB * BB;
@@ -538,10 +545,10 @@ function calc_buckling_sf_acc(set, delta_clearance, d_i,
 
 	var P_E_acc = (-b - Math.sqrt(Math.pow(b, 2) - 4 * a * c)) / (2 * a) / 1000;
 	var f_0 = L_1 * delta_clearance / (L * L_3 * 2) 
-		* Math.sqrt(Math.pow(pi, 2) * E * I_2 / P_E_acc);
+		* Math.sqrt(Math.pow(pi, 2) * E * I2 / P_E_acc);
 
-	var FF = d_o / (2 * I_2) * (my_end_eye * r_end_eye_rod + f_0);
-	var GG = m_cyl * g * L * d_o / (16 * I_2);
+	var FF = d_o / (2 * I2) * (my * r + f_0);
+	var GG = m_cyl * g * L * d_o / (16 * I2);
 	var HH = Math.sqrt(1 + 2 * A * FF - 2 * f_y * A / P_E_acc 
 		+ Math.pow(FF, 2) * Math.pow(A, 2) + 2 * Math.pow(A, 2) * FF * f_y / P_E_acc 
 		+ Math.pow(f_y * A / P_E_acc, 2) + 4 * A * GG / P_E_acc);
@@ -553,10 +560,12 @@ function calc_buckling_sf_acc(set, delta_clearance, d_i,
 	return SF_buckling_acc;
 } // End of calc_buckling_sf_acc function
 
-function calc_buckling_sf_en(set) {
+function calcBucklingSfEn(calcMethod, tubeMaterial, rodMaterial, tubeDo, tubeDi, rodDo, rodDi,
+	Le, L1e, L2) {
 	/* Calculates the buckling safety factor of a hydraulic cylinder based on the 
 	 * buckling curve from EN 1993-1-1 as referred to in DNVGL-ST-0194 [A.5].
 	 * */
+	// TODO: Implement
 }
 
 function calcBucklingCapacity(area, yieldStrength, bucklingLoad, alpha) {
@@ -572,8 +581,9 @@ function calcBucklingCapacity(area, yieldStrength, bucklingLoad, alpha) {
 	return chi;
 }
 
-function calcBucklingLoad(tubeDo, tubeDi, rodDo, rodDi, L1, L2, L, E) {
-	/* Calculates the buckling load of a cylinder based the method in DNVGL-ST-0194 [3.2.2].
+function calcCriticalBucklingLoad(tubeDo, tubeDi, rodDo, rodDi, L1, L2, L, E, eulerRatio) {
+	/* Calculates the critical buckling load of a cylinder based the method 
+	 * in DNVGL-ST-0194 [3.2.2].
 	 * arg tubeDo: float, tube outer diameter
 	 * arg tubeDi: float, tube inner diameter
 	 * arg rodDo: float, rod outer diameter
@@ -581,7 +591,8 @@ function calcBucklingLoad(tubeDo, tubeDi, rodDo, rodDi, L1, L2, L, E) {
 	 * arg L1: float, cylinder length from mounting center
 	 * arg L2: float, rod visible length
 	 * arg L: float, fully extracted cylinder length
-	 * arg E: float, Young's modulus */
+	 * arg E: float, Young's modulus 
+	 * arg eulerRatio: float, Euler equivalent ratio */
 	var pi = Math.PI;
 	var I1 = pi/64*(Math.pow(tubeDo,4) - Math.pow(tubeDi,4));
 	var I2 = pi/64*(Math.pow(rodDo,4) - Math.pow(rodDi,4));
@@ -673,9 +684,9 @@ var uiCalcMethod = {
 	    { text: "Method [A.4]", value: "simple_acc" },
 	    { text: "Method [A.4], stroke-force curve", value: "advanced-force_acc" }, 
 	    { text: "Method [A.4], stroke-pressure curve", value: "advanced-pressure_acc" }, 
-	    { text: "Method [A.5]", value: "simple_en" }, 
-	    { text: "Method [A.5], stroke-force curve", value: "advanced_force_en" }, 
-	    { text: "Method [A.5], stroke-pressure curve", value: "advanced_pressure_en" }];
+	    { text: "Method [A.5]", value: "en_simple" }, 
+	    { text: "Method [A.5], stroke-force curve", value: "en_force" }, 
+	    { text: "Method [A.5], stroke-pressure curve", value: "en_pressure" }];
     
     return items;
   }
@@ -1263,21 +1274,25 @@ define(function () {
               //
               itNumPos("L3", "Guiding length of piston in cylinder tube (mm)", "L_3", 
                 "The Guiding length of piston in cylinder tube as given on the general arrangement drawing", function show(get) {
-                return get("calcMethod") == "simple_acc" || get("calcMethod") == "advanced-force_acc" || get("calcMethod") == "advanced-pressure_acc";
+			var calcMethod = get("calcMethod");
+                	return calcMethod == "simple_acc" || calcMethod == "advanced-force_acc" || calcMethod == "advanced-pressure_acc";
               }),
               //
               itNumPos("m_cyl", "The weigth of the cylinder, kg", "m", undefined, function show(get) {
-                return get("calcMethod") == "simple_acc" || get("calcMethod") == "advanced-force_acc" || get("calcMethod") == "advanced-pressure_acc";
+		      	var calcMethod = get("calcMethod");
+                	return calcMethod == "simple_acc" || calcMethod == "advanced-force_acc" || calcMethod == "advanced-pressure_acc";
               }),
               //
               itNumPos("my_end_eye", "Coefficient of friction for end eyes [Default: 0.19]", undefined, undefined, function show(get) {
-                return get("calcMethod") == "simple_acc" || get("calcMethod") == "advanced-force_acc" || get("calcMethod") == "advanced-pressure_acc";
+			var calcMethod = get("calcMethod");
+                	return calcMethod == "simple_acc" || calcMethod == "advanced-force_acc" || calcMethod == "advanced-pressure_acc";
               }), {
                 name: "fCurve",
                 type: "input",
                 desc: "Enter the stroke points and corresponding force for evaluation",
                 show: function show(get) {
-                  return get("calcMethod") == "advanced-force" || get("calcMethod") == "advanced-force_acc";
+			var calcMethod = get("calcMethod");
+                  	return calcMethod == "advanced-force" || calcMethod == "advanced-force_acc" || calcMethod == "en_force";
                 },
                 ui: {
                   type: "table",
@@ -1289,7 +1304,8 @@ define(function () {
                 type: "input",
                 desc: "Enter the stroke points and corresponding pressure for evaluation",
                 show: function show(get) {
-                  return get("calcMethod") == "advanced-pressure" || get("calcMethod") == "advanced-pressure_acc";
+			var calcMethod = get("calcMethod");
+                  return calcMethod == "advanced-pressure" || calcMethod == "advanced-pressure_acc" || calcMethod == "en_pressure";
                 },
                 ui: {
                   type: "table",
@@ -1351,7 +1367,7 @@ define(function () {
 				if (materialType == "E355+SR, EN10305-1") {
 					var thickness = get("OD");
 				}
-				var data = get_yield_and_strength(thickness, material);
+				var data = getYieldAndStrength(thickness, material);
 				return data[0];
 			}
 		}, 
@@ -1375,7 +1391,7 @@ define(function () {
 				if (materialType == "E355+SR, EN10305-1") {
 					var thickness = get("OD");
 				}
-				var data = get_yield_and_strength(thickness, material);
+				var data = getYieldAndStrength(thickness, material);
 				return data[1];
 			}
 		},   
@@ -1398,7 +1414,7 @@ define(function () {
 				if (materialType == "E355+SR, EN10305-1") {
 					var thickness = get("OD");
 				}
-				var data = get_yield_and_strength(thickness, material);
+				var data = getYieldAndStrength(thickness, material);
 				return data[0];
 			}
 		},
@@ -1422,7 +1438,7 @@ define(function () {
 				if (materialType == "E355+SR, EN10305-1") {
 					var thickness = get("OD");
 				}
-				var data = get_yield_and_strength(thickness, material);
+				var data = getYieldAndStrength(thickness, material);
 				return data[1];
 			}
 		},
@@ -1442,7 +1458,7 @@ define(function () {
                   if (materialType == "E355+SR, EN10305-1") {
                     var thickness = get("OD");
                   }
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[2];
                 }
               },
@@ -1479,7 +1495,7 @@ define(function () {
                   var thickness = (get("OD_rod") - get("DI_rod")) / 2;
                   var materialType = get("rodMaterial").mat;
                   var material = get("rodMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[0];
                 }
               },
@@ -1500,7 +1516,7 @@ define(function () {
                   var thickness = (get("OD_rod") - get("DI_rod")) / 2;
                   var materialType = get("rodMaterial").mat;
                   var material = get("rodMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[1];
                 }
               },
@@ -1520,7 +1536,7 @@ define(function () {
                   var thickness = (get("OD_rod") - get("DI_rod")) / 2;
                   var materialType = get("rodMaterial").mat;
                   var material = get("rodMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[0];
                 }
               },
@@ -1541,7 +1557,7 @@ define(function () {
                   var thickness = (get("OD_rod") - get("DI_rod")) / 2;
                   var materialType = get("rodMaterial").mat;
                   var material = get("rodMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[1];
                 }
               },
@@ -1558,7 +1574,7 @@ define(function () {
                   var thickness = (get("OD_rod") - get("DI_rod")) / 2;
                   var materialType = get("rodMaterial").mat;
                   var material = get("rodMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[2];
                 }
               }
@@ -1640,7 +1656,7 @@ define(function () {
                   var thickness = get("T_tube");
                   var materialType = get("tubeEndEyeMaterial").mat;
                   var material = get("tubeEndEyeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[0];
                 }
               },
@@ -1661,7 +1677,7 @@ define(function () {
                   var thickness = get("T_tube");
                   var materialType = get("tubeEndEyeMaterial").mat;
                   var material = get("tubeEndEyeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[1];
                 }
               },
@@ -1681,7 +1697,7 @@ define(function () {
 			var thickness = get("T_tube");
 			var materialType = get("tubeEndEyeMaterial").mat;
 			var material = get("tubeEndEyeMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[0];
                 }
               },
@@ -1702,7 +1718,7 @@ define(function () {
 			var thickness = get("T_tube");
 			var materialType = get("tubeEndEyeMaterial").mat;
 			var material = get("tubeEndEyeMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[1];
                 }
               },
@@ -1719,7 +1735,7 @@ define(function () {
                   var thickness = get("T_tube");
                   var materialType = get("tubeEndEyeMaterial").mat;
                   var material = get("tubeEndEyeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[2];
                 }
               },
@@ -1962,7 +1978,7 @@ define(function () {
 			var thickness = get("T_flange");
 			var materialType = get("flangeMaterial").mat;
 			var material = get("flangeMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[0];
                 }
               },
@@ -1983,7 +1999,7 @@ define(function () {
 			var thickness = get("T_flange");
 			var materialType = get("flangeMaterial").mat;
 			var material = get("flangeMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[1];
                 }
               },
@@ -2003,7 +2019,7 @@ define(function () {
 			var thickness = get("T_flange");
 			var materialType = get("flangeMaterial").mat;
 			var material = get("flangeMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[0];
                 }
               },
@@ -2024,7 +2040,7 @@ define(function () {
 			var thickness = get("T_flange");
 			var materialType = get("flangeMaterial").mat;
 			var material = get("flangeMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[1];
                 }
               },
@@ -2041,7 +2057,7 @@ define(function () {
                   var thickness = get("T_flange");
                   var materialType = get("flangeMaterial").mat;
                   var material = get("flangeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[2];
                 }
               },
@@ -2214,7 +2230,7 @@ define(function () {
                   var thickness = get("T_rod");
                   var materialType = get("rodEndEyeMaterial").mat;
                   var material = get("rodEndEyeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[0];
                 }
               },
@@ -2235,7 +2251,7 @@ define(function () {
 			var thickness = get("T_rod");
 			var materialType = get("rodEndEyeMaterial").mat;
 			var material = get("rodEndEyeMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[1];
                 }
               },
@@ -2255,7 +2271,7 @@ define(function () {
 			var thickness = get("T_rod");
 			var materialType = get("rodEndEyeMaterial").mat;
 			var material = get("rodEndEyeMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[0];
                 }
               },
@@ -2276,7 +2292,7 @@ define(function () {
 			var thickness = get("T_rod");
 			var materialType = get("rodEndEyeMaterial").mat;
 			var material = get("rodEndEyeMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[1];
                 }
               },
@@ -2293,7 +2309,7 @@ define(function () {
                   var thickness = get("T_rod");
                   var materialType = get("rodEndEyeMaterial").mat;
                   var material = get("rodEndEyeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[2];
                 }
               },
@@ -2497,7 +2513,7 @@ define(function () {
                   var thickness = (get("DI") - get("Md_piston")) / 2;
                   var materialType = get("pistonMaterial").mat;
                   var material = get("pistonMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[0];
                 }
               },
@@ -2518,7 +2534,7 @@ define(function () {
 			var thickness = (get("DI") - get("Md_piston")) / 2;
 			var materialType = get("pistonMaterial").mat;
 			var material = get("pistonMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[1];
                 }
               },
@@ -2538,7 +2554,7 @@ define(function () {
                   var thickness = (get("DI") - get("Md_piston")) / 2;
                   var materialType = get("pistonMaterial").mat;
                   var material = get("pistonMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[0];
                 }
               },
@@ -2559,7 +2575,7 @@ define(function () {
 			var thickness = (get("DI") - get("Md_piston")) / 2;
 			var materialType = get("pistonMaterial").mat;
 			var material = get("pistonMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[1];
                 }
               },
@@ -2576,7 +2592,7 @@ define(function () {
                   var thickness = (get("DI") - get("Md_piston")) / 2;
                   var materialType = get("pistonMaterial").mat;
                   var material = get("pistonMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[2];
                 }
               }
@@ -2650,7 +2666,7 @@ define(function () {
                   var thickness = get("ect");
                   var materialType = get("ecMaterial").mat;
                   var material = get("ecMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[0];
                 }
               },
@@ -2672,7 +2688,7 @@ define(function () {
 			var thickness = get("ect");
 			var materialType = get("ecMaterial").mat;
 			var material = get("ecMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[1];
                 }
               },
@@ -2693,7 +2709,7 @@ define(function () {
                   var thickness = get("ect");
                   var materialType = get("ecMaterial").mat;
                   var material = get("ecMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[0];
                 }
               },
@@ -2714,7 +2730,7 @@ define(function () {
 			var thickness = get("ect");
 			var materialType = get("ecMaterial").mat;
 			var material = get("ecMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[1];
                 }
               },
@@ -2731,7 +2747,7 @@ define(function () {
                   var thickness = get("ect");
                   var materialType = get("ecMaterial").mat;
                   var material = get("ecMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[2];
                 }
               },
@@ -2877,7 +2893,7 @@ define(function () {
                   var thickness = (get("DI") - get("OD_rod")) / 2;
                   var materialType = get("sbMaterial").mat;
                   var material = get("sbMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[0];
                 }
               },
@@ -2898,7 +2914,7 @@ define(function () {
 			var thickness = (get("DI") - get("OD_rod")) / 2;
 			var materialType = get("sbMaterial").mat;
 			var material = get("sbMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[1];
                 }
               },
@@ -2918,7 +2934,7 @@ define(function () {
                   var thickness = (get("DI") - get("OD_rod")) / 2;
                   var materialType = get("sbMaterial").mat;
                   var material = get("sbMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[0];
                 }
               },
@@ -2939,7 +2955,7 @@ define(function () {
 			var thickness = (get("DI") - get("OD_rod")) / 2;
 			var materialType = get("sbMaterial").mat;
 			var material = get("sbMaterial");
-			var data = get_yield_and_strength(thickness, material);
+			var data = getYieldAndStrength(thickness, material);
 			return data[1];
                 }
               },
@@ -2956,7 +2972,7 @@ define(function () {
                   var thickness = (get("DI") - get("OD_rod")) / 2;
                   var materialType = get("sbMaterial").mat;
                   var material = get("sbMaterial");
-                  var data = get_yield_and_strength(thickness, material);
+                  var data = getYieldAndStrength(thickness, material);
                   return data[2];
                 }
               },
@@ -3251,7 +3267,7 @@ define(function () {
             // Calculating moments of inertia and buckling factor
             var I1 = calcInertiaMoment(OD, DI);
             var I2 = calcInertiaMoment(OD_rod, DI_rod);
-            var Z = calc_z_factor(I1, I2, eL, L1e, L2e_max);
+            var Z = calcZFactor(I1, I2, eL, L1e, L2e_max);
             
             // Assigning values to object variables
             this.set("c", 0.3);
@@ -3520,7 +3536,7 @@ define(function () {
                 this.error(["SF"], "According to $ref the buckling safety factor is too low: " 
                   + SF + " < " + SF_required + ".");
               } else {
-                this.warn(["SF"], "According to $ref the buckling safety factor high enough: " 
+                this.warn(["SF"], "According to $ref the buckling safety factor is high enough: " 
                   + SF + " >= " + SF_required + ".");
               }
               return;
@@ -3602,7 +3618,7 @@ define(function () {
         {
           desc: "Calculates safety factor [accurate]",
           ref: "CG-0194 [4]",
-          "rule": function rule(calcMethod, DI_rod, d_rod, OD_rod, L, L1, L2max, L2min, 
+          "rule": function rule(calcMethod, rodEnd, DI_rod, d_rod, OD_rod, L, L1, L2max, L2min, 
             L3, L4, I1, I2, m_cyl, my_end_eye, rodMaterial, Pa, fCurve, pCurve, DI, T_rod)
           {
             var delta_clearance = 0.17;
@@ -3612,14 +3628,14 @@ define(function () {
             var SF_required = 2.7;
             var arr = [];
             var thickness = T_rod;
-            var materialData = get_yield_and_strength(thickness, rodMaterial);
+            var materialData = getYieldAndStrength(thickness, rodMaterial);
 		var sigma_rod = materialData[0]; 
 
             // Accurate buckling calculation method
             if (calcMethod == "simple_acc")
             {
               var stroke = L2max - L4;
-              SF = calc_buckling_sf_acc(this.set, delta_clearance, DI_rod, d_rod, 
+              SF = calc_buckling_sf_acc(this.set, rodEnd, delta_clearance, DI_rod, d_rod, 
                 OD_rod, E, g, I1, I2, L, L1, L2max, L3, L4, m_cyl, my_end_eye, 
                 sigma_rod, Pa);
               SF = round_to_decimal(SF, 3);
@@ -3652,7 +3668,7 @@ define(function () {
                 var Pa = fCurve[i]["f"];
                 var stroke = L2_chart - L4;
 
-                SF = calc_buckling_sf_acc(this.set, delta_clearance, DI_rod, d_rod, 
+                SF = calc_buckling_sf_acc(this.set, rodEnd, delta_clearance, DI_rod, d_rod, 
                   OD_rod, E, g, I1, I2, L, L1, L2_chart, L3_chart, L4, m_cyl, my_end_eye, 
                   sigma_rod, Pa);
                 SF = round_to_decimal(SF, 3);
@@ -3691,7 +3707,7 @@ define(function () {
                 var L3_chart = L2max - L2_chart + L3;
                 var Pa = pCurve[i]["p"] * 0.1 * 0.001 * Math.PI * DI * DI / 4; //Force in kN
 
-                SF = calc_buckling_sf_acc(this.set, delta_clearance, DI_rod, d_rod, 
+                SF = calc_buckling_sf_acc(this.set, rodEnd, delta_clearance, DI_rod, d_rod, 
                   OD_rod, E, g, I1, I2, L, L1, L2_chart, L3_chart, L4, m_cyl, my_end_eye, 
                   sigma_rod, Pa);
 
@@ -3721,6 +3737,23 @@ define(function () {
           }
         },
         // End of accurate buckling safety factor rule
+	
+	// EN buckling safety factor rule
+	{
+		desc: "Calculates safety factor [EN]",
+          	ref: "DNVGL-ST-0194 [A.5]",
+		"rule": function rule(calcMethod, tubeMaterial, rodMaterial, OD, DI, OD_rod, DI_rod, 
+			L1e, Le, L2e_max, Pa, fCurve, pCurve) {
+			var E = 206000;
+			if (calcMethod == "en_simple") {
+				// TODO: Do something
+			} else if (calcMethod == "en_force") {
+				// TODO: Do something
+			} else if (calcMethod == "en_pressure") {
+				// TODO: Do something
+			}
+		}
+	}, // End of EN buckling safety factor rule
 
         // Rod end eye stress rule
         {
@@ -3742,7 +3775,7 @@ define(function () {
               var t_rod = F_pull * Math.sqrt(D_rod / d_rod * (D_rod / d_rod) 
                 - D_rod / d_rod + 1) / (T_rod * (D_rod - d_rod));
               var thickness = T_rod;
-              var material = get_yield_and_strength(thickness, rodEndEyeMaterial);
+              var material = getYieldAndStrength(thickness, rodEndEyeMaterial);
               var sigma_rod_end_eye = material[0];
               this.set("sigma_rod_end_eye", sigma_rod_end_eye);
 
@@ -3779,7 +3812,7 @@ define(function () {
             if (tubeEnd == "endEye") {
 
               var thickness = T_tube;
-              var material = get_yield_and_strength(thickness, tubeEndEyeMaterial);
+              var material = getYieldAndStrength(thickness, tubeEndEyeMaterial);
               var sigma_tube_end_eye = material[0];
               this.set("sigma_tube_end_eye", sigma_tube_end_eye);
 
@@ -3806,8 +3839,8 @@ define(function () {
           {
             var thickness1 = (DI - Md_piston) / 2;
             var thickness2 = (OD_rod - DI_rod) / 2;
-            var material1 = get_yield_and_strength(thickness1, pistonMaterial);
-            var material2 = get_yield_and_strength(thickness2, rodMaterial);
+            var material1 = getYieldAndStrength(thickness1, pistonMaterial);
+            var material2 = getYieldAndStrength(thickness2, rodMaterial);
 
             var p_design = Math.max(DPpush, DPpull);
 
@@ -3828,8 +3861,8 @@ define(function () {
             if (rodEnd == "endEye" && rodEndEyeAttachment == "threaded") {
               var thickness1 = T_rod;
               var thickness2 = (OD_rod - DI_rod) / 2;
-              var material1 = get_yield_and_strength(thickness1, rodEndEyeMaterial);
-              var material2 = get_yield_and_strength(thickness2, rodEndEyeMaterial);
+              var material1 = getYieldAndStrength(thickness1, rodEndEyeMaterial);
+              var material2 = getYieldAndStrength(thickness2, rodEndEyeMaterial);
 
               rule_thread_stress(this.set, this.error, this.warn,"rod_end_eye_push", Md_rod_eye, xP_rod_eye, 
                 Le_rod_eye, DI, OD_rod, material1, material2, DPpush, 0, 0, 0);
@@ -3850,7 +3883,7 @@ define(function () {
             
             if (rodEnd == "threaded_fixed" || rodEnd == "threaded_pinned") {
               var thickness1 = (OD_rod - DI_rod) / 2;
-              var material1 = get_yield_and_strength(thickness1, rodMaterial);
+              var material1 = getYieldAndStrength(thickness1, rodMaterial);
 
               rule_thread_stress(this.set, this.error, this.warn, "rod_thread_push", Md_rod, xP_rod, 
                 Le_rod, DI, OD_rod, material1, material1, DPpush, 0, 0, 0);
@@ -3874,8 +3907,8 @@ define(function () {
 
               var thickness1 = (OD - DI) / 2;
               var thickness2 = (DI - OD_rod) / 2;
-              var material1 = get_yield_and_strength(thickness1, sbMaterial);
-              var material2 = get_yield_and_strength(thickness2, tubeMaterial);
+              var material1 = getYieldAndStrength(thickness1, sbMaterial);
+              var material2 = getYieldAndStrength(thickness2, tubeMaterial);
 
               rule_thread_stress(this.set, this.error, this.warn, "stuffing box", Md_sb, xP_sb, Le_sb, 
                 DI, OD_rod, material1, material2, DPpull, 0, 0, 1);
@@ -4076,7 +4109,7 @@ define(function () {
               {
                 thickness = OD;
               }
-              var material = get_yield_and_strength(thickness, tubeMaterial);
+              var material = getYieldAndStrength(thickness, tubeMaterial);
               this.set("material", material);
 
               calc_bolts(this.set, this.error, this.warn, "stuffing_box", d_n_bolt, L_p_bolt, sbBoltMaterial,
@@ -4104,7 +4137,7 @@ define(function () {
                 thickness = OD;
               }
               
-              var material = get_yield_and_strength(thickness, tubeMaterial);
+              var material = getYieldAndStrength(thickness, tubeMaterial);
 
               calc_bolts(this.set, this.error, this.warn, "end_cover", d_n_bolt_ec, L_p_bolt_ec, ecBoltMaterial, 
                 material, A_s_bolt_ec, n_bolts_ec, l_thread_bolt_ec, ecAttachment, F_pull, tubeEnd, Pa);
@@ -4164,7 +4197,7 @@ define(function () {
               var thickness = T_flange;
               var materialType = flangeMaterial;
               var material = flangeMaterial;
-              var data = get_yield_and_strength(thickness, material);
+              var data = getYieldAndStrength(thickness, material);
 
               var sigma_flange = data[0] / 1.5;
               sigma_flange = round_to_decimal(sigma_flange, 3);
@@ -4215,7 +4248,7 @@ define(function () {
               var thickness = T_flange;
               var materialType = flangeMaterial;
               var material = flangeMaterial;
-              var data = get_yield_and_strength(thickness, material);
+              var data = getYieldAndStrength(thickness, material);
               var sigma_flange = Math.min(data[0] / 1.7, data[2] / 2.7);
 
               sigma_flange = round_to_decimal(sigma_flange, 3);
@@ -4335,7 +4368,7 @@ define(function () {
               var thickness = T_flange;
               var materialType = flangeMaterial;
               var material = flangeMaterial;
-              var data = get_yield_and_strength(thickness, material);
+              var data = getYieldAndStrength(thickness, material);
 
               var sigma_flange = Math.min(data[0] / 1.7, data[2] / 2.7);
               sigma_flange = round_to_decimal(sigma_flange, 3);
