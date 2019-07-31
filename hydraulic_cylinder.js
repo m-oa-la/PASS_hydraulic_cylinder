@@ -103,12 +103,18 @@ function find_minimum(arr) {
 	return min;
 }
 
-function calc_inertia_moment(outer_diameter, inner_diameter) {
+function calcArea(outerDiameter, innerDiameter) {
+	/* Calculates the area of a circular cross section. */
+	var pi = Math.PI;
+	return pi/4*Math.(pow(outerDiameter,2) - Math.pow(innerDiameter,2));
+}
+
+function calcInertiaMoment(outerDiameter, innerDiameter) {
   /* Calculates the second moment of inertia for a circular cross section.
   :arg outer_diameter: The outer diameter of the cross section.
   :arg inner_diameter: The inner diameter of the cross section. */
-  return (Math.PI / 64) * (Math.pow(outer_diameter, 4) - Math.pow(inner_diameter, 4));
-} // End of calc_inertia_moment function
+  return (Math.PI / 64) * (Math.pow(outerDiameter, 4) - Math.pow(innerDiameter, 4));
+} // End of calcInertiaMoment function
 
 function calc_z_factor(I_tube, I_rod, L_euler, L1_Le, L2max_Le) {
   /* Calculates the Z-factor used in buckling calculations.
@@ -342,18 +348,18 @@ var rule_ec_thickness_shell = function rule_ec_thickness_shell(set, error, warn,
 function calc_fatigue(set, error, warn, part_name, F_push, F_pull, weld_type,
   fatigue_type, weld_area, n_cycles_manufacturer) {
 	/* Calculates the predicted number of fatigue cycles before failure and compares it
-	to the number of fatigue cycles before failure provided by the manufacturer.
-	Displays an error of the rule condition is not met and a warning otherwise.
-	:arg set: Pointer for setting variables.
-	:arg error: Pointer for setting errors.
-	:arg warn: Pointer for setting warnings.
-	:arg part_name: The name of the part.
-	:arg F_push: The push force in kN.
-	:arg F_pull: The pull force in MN.
-	:arg weld_type: The weld type.
-	:arg fatigue_type: The type of fatigue analysis.
-	:arg weld_area: The area of the weld.
-	:arg n_cycles_manufacturer: The number of fatigue cycles provided by manufacturer. */
+	 * to the number of fatigue cycles before failure provided by the manufacturer.
+	 * Displays an error of the rule condition is not met and a warning otherwise.
+	 * arg set: Pointer for setting variables.
+	 * arg error: Pointer for setting errors.
+	 * arg warn: Pointer for setting warnings.
+	 * arg part_name: The name of the part.
+	 * arg F_push: The push force in kN.
+	 * arg F_pull: The pull force in MN.
+	 * arg weld_type: The weld type.
+	 * arg fatigue_type: The type of fatigue analysis.
+	 * arg weld_area: The area of the weld.
+	 * arg n_cycles_manufacturer: The number of fatigue cycles provided by manufacturer. */
 	if (weld_type != "fPen") {
 		if (fatigue_type == "fChoice2") {
 			var sigma_weld_pull = F_pull / weld_area;
@@ -489,32 +495,33 @@ function calc_bolts(set, error, warn, part_name, d_n_bolt, L_p_bolt,
 	}
 } // End of calc_bolts function
 
-var calc_buckling_SF_acc = function calc_buckling_SF_acc(set, delta_clearance, d_i, 
+function calc_buckling_sf_acc(set, delta_clearance, d_i, 
   d_end_eye_rod, d_o, E, g, I_1, I_2, L, L_1, L_2, L_3, L_4, m_cyl, my_end_eye, 
   sigma_rod, P_a) {
-	/* Calculates the safety factor for an element subjected to buckling loads, using the 
-	accurate calculation method.
-	:arg set: Pointer for setting variables.
-	:arg delta_clearance: 
-	:arg d_i: Piston rod inner diameter.
-	:arg d_end_eye_rod: End eye rod diameter.
-	:arg d_o: Piston rod outer diameter.
-	:arg E: E-modulus of the rod.
-	:arg g: Gravitational acceleration.
-	:arg I_1: Second moment of inertia of the cylinder tube.
-	:arg I_2: Second moment of inertia of the cylinder rod.
-	:arg L: Cylinder block length, sum of tube length and maximum visible rod length.
-	:arg L_1: Cylinder tube length.
-	:arg L_2: Maximum visible rod length (fully extracted).
-	:arg L_3: Guiding length of piston in cylinder tube.
-	:arg L_4: Minimum visible rod length (fully contracted).
-	:arg m_cyl: Mass of the cylinder (?).
-	:arg my_end_eye: Friction coefficient for the end eye.
-	:arg sigma_rod: The nominal stress in the rod.
-	:arg P_a: Buckling force in kN. */
+	/* Calculates the safety factor for a buckling element according to the method
+	 * in DNVGL-ST-0194 [A.4.3]. 
+	 * arg set: Pointer for setting variables. 
+	 * arg delta_clearance: 
+	 * arg d_i: Piston rod inner diameter. 
+	 * arg d_end_eye_rod: End eye rod diameter. 
+	 * arg d_o: Piston rod outer diameter. 
+	 * arg E: E-modulus of the rod.
+	 * arg g: Gravitational acceleration.
+	 * arg I_1: Second moment of inertia of the cylinder tube.
+	 * arg I_2: Second moment of inertia of the cylinder rod.
+	 * arg L: Cylinder block length, sum of tube length and maximum visible rod length.
+	 * arg L_1: Cylinder tube length.
+	 * arg L_2: Maximum visible rod length (fully extracted).
+	 * arg L_3: Guiding length of piston in cylinder tube.
+	 * arg L_4: Minimum visible rod length (fully contracted).
+	 * arg m_cyl: Mass of the cylinder (?).
+	 * arg my_end_eye: Friction coefficient for the end eye.
+	 * arg sigma_rod: The nominal stress in the rod.
+	 * arg P_a: Buckling force in kN. */
 	var pi = Math.PI;
 	var f_y = sigma_rod;
 	var A = pi * (Math.pow(d_o, 2) - Math.pow(d_i, 2)) / 4;
+	// var A = calcArea(d_o, d_i);
 	var r_end_eye_rod = d_end_eye_rod / 2;
 	var alpa_cyl = pi * L_2 / L;
 
@@ -544,7 +551,44 @@ var calc_buckling_SF_acc = function calc_buckling_SF_acc(set, delta_clearance, d
 	set("SF_buckling_acc_" + L_2, SF_buckling_acc);
 
 	return SF_buckling_acc;
-} // End of calc_buckling_SF_acc function
+} // End of calc_buckling_sf_acc function
+
+function calc_buckling_sf_en(set) {
+	/* Calculates the buckling safety factor of a hydraulic cylinder based on the 
+	 * buckling curve from EN 1993-1-1 as referred to in DNVGL-ST-0194 [A.5].
+	 * */
+}
+
+function calcBucklingCapacity(area, yieldStrength, bucklingLoad, alpha) {
+	/* Calculates the buckling capacity of a circular part based on the method in
+	 * DNVGL-ST-0194 [A.5.3].
+	 * arg area: float, cross section area
+	 * arg yieldStrength: float, yield strength
+	 * arg bucklingLoad: float, buckling load 
+	 * arg alpha: float, imperfection factor (0.49 for buckling curve c) */
+	var lambda = Math.sqrt(area * yieldStrength / bucklingLoad);
+	var phi = 0.5 * (1 + alpha*(lambda - 0.2) + Math.pow(lambda,2));
+	var chi = 1 / (phi*Math.sqrt(Math.pow(phi,2) - Math.pow(lambda,2)));
+	return chi;
+}
+
+function calcBucklingLoad(tubeDo, tubeDi, rodDo, rodDi, L1, L2, L, E) {
+	/* Calculates the buckling load of a cylinder based the method in DNVGL-ST-0194 [3.2.2].
+	 * arg tubeDo: float, tube outer diameter
+	 * arg tubeDi: float, tube inner diameter
+	 * arg rodDo: float, rod outer diameter
+	 * arg rodDi: float, rod inner diameter
+	 * arg L1: float, cylinder length from mounting center
+	 * arg L2: float, rod visible length
+	 * arg L: float, fully extracted cylinder length
+	 * arg E: float, Young's modulus */
+	var pi = Math.PI;
+	var I1 = pi/64*(Math.pow(tubeDo,4) - Math.pow(tubeDi,4));
+	var I2 = pi/64*(Math.pow(rodDo,4) - Math.pow(rodDi,4));
+	var Z = L1/I1 + L2/I2 + (1/I2 - 1/I1)*L/(2*pi)*Math.sin(2*pi*L1/L);
+	var Fe = E*Math.pow(pi,2)/(L*Z);
+	return Fe;
+}
 
 ////////////////////////////////////////////////////////////////
 //////// GENERAL SHORTCUTS FOR CREATING PARTS OF THE GUI ///////
@@ -1317,7 +1361,8 @@ define(function () {
 			var: "R_{p1t}",
 			type: "output",
 			show: function show(get) {
-				return get("tubeMaterial").mat == "ss";
+				var tubeMaterial = get("tubeMaterial");
+				return tubeMaterial.mat == "ss" && tubeMaterial.def == "custom";
 			},
 			desc: "1% proof stress at design temperature of cylinder (MPa)",
 			ui: {
@@ -1363,7 +1408,8 @@ define(function () {
 			var: "R_{et}",
 			type: "output",
 			show: function show(get) {
-				return get("tubeMaterial").mat == "cs";
+				var tubeMaterial = get("tubeMaterial");
+				return tubeMaterial.mat == "cs" && tubeMaterial.def == "custom";
 			},
 			desc: "Yield strength of the cylinder at design temperature (MPa)",
 			ui: {
@@ -1443,7 +1489,8 @@ define(function () {
                 var: "R_{p1t}",
                 type: "output",
                 show: function show(get) {
-                  return get("rodMaterial").mat == "ss";
+			var rodMaterial = get("rodMaterial");
+                  	return rodMaterial.mat == "ss" && rodMaterial.def == "custom";
                 },
                 desc: "1% proof stress of the rod at design temperature (MPa)",
                 ui: {
@@ -1483,7 +1530,8 @@ define(function () {
                 var: "R_{et}",
                 type: "output",
                 show: function show(get) {
-                  return get("rodMaterial").mat == "cs";
+			var rodMaterial = get("rodMaterial");
+                  	return rodMaterial.mat == "cs" && rodMaterial.def == "custom";
                 },
                 desc: "Yield strength of the rod at design temperature (MPa)",
                 ui: {
@@ -1602,7 +1650,8 @@ define(function () {
                 var: "R_{p1}",
                 type: "output",
                 show: function show(get) {
-                  return get("tubeEndEyeMaterial").mat == "ss";
+			var tubeEndEyeMaterial = get("tubeEndEyeMaterial");
+                  	return tubeEndEyeMaterial.mat == "ss" && tubeEndEyeMaterial.def == "custom";
                 },
                 desc: "1% proof stress of tube end eye at design temperature (MPa)",
                 ui: {
@@ -1626,14 +1675,14 @@ define(function () {
                 },
                 desc: "Yield strength of the tube end eye at room temperature (MPa)",
                 ui: {
-                  type: "text"
+			type: "text"
                 },
                 value: function value(get) {
-                  var thickness = get("T_tube");
-                  var materialType = get("tubeEndEyeMaterial").mat;
-                  var material = get("tubeEndEyeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[0];
+			var thickness = get("T_tube");
+			var materialType = get("tubeEndEyeMaterial").mat;
+			var material = get("tubeEndEyeMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[0];
                 }
               },
 	      // Tube end eye yield stress at design temperature
@@ -1642,18 +1691,19 @@ define(function () {
                 var: "R_{et}",
                 type: "output",
                 show: function show(get) {
-                  return get("tubeEndEyeMaterial").mat == "cs";
+			var tubeEndEyeMaterial = get("tubeEndEyeMaterial");
+                  	return tubeEndEyeMaterial.mat == "cs" && tubeEndEyeMaterial.def == "custom";
                 },
                 desc: "Yield strength of the tube end eye at design temperature (MPa)",
                 ui: {
-                  type: "text"
+			type: "text"
                 },
                 value: function value(get) {
-                  var thickness = get("T_tube");
-                  var materialType = get("tubeEndEyeMaterial").mat;
-                  var material = get("tubeEndEyeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[1];
+			var thickness = get("T_tube");
+			var materialType = get("tubeEndEyeMaterial").mat;
+			var material = get("tubeEndEyeMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[1];
                 }
               },
               // Tensile strength of the tube end eye output block
@@ -1906,14 +1956,14 @@ define(function () {
                 },
                 desc: "1% proof stress of the flange at room temperature (MPa)",
                 ui: {
-                  type: "text"
+			type: "text"
                 },
                 value: function value(get) {
-                  var thickness = get("T_flange");
-                  var materialType = get("flangeMaterial").mat;
-                  var material = get("flangeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[0];
+			var thickness = get("T_flange");
+			var materialType = get("flangeMaterial").mat;
+			var material = get("flangeMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[0];
                 }
               },
 	      // Flange 1% proof stress at design temperature
@@ -1922,18 +1972,19 @@ define(function () {
                 var: "R_{p1t}",
                 type: "output",
                 show: function show(get) {
-                  return get("flangeMaterial").mat == "ss";
+			var flangeMaterial = get("flangeMaterial");
+			return flangeMaterial.mat == "ss" && flangeMaterial.def == "custom";
                 },
                 desc: "1% proof stress of the flange at design temperature (MPa)",
                 ui: {
-                  type: "text"
+			type: "text"
                 },
                 value: function value(get) {
-                  var thickness = get("T_flange");
-                  var materialType = get("flangeMaterial").mat;
-                  var material = get("flangeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[1];
+			var thickness = get("T_flange");
+			var materialType = get("flangeMaterial").mat;
+			var material = get("flangeMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[1];
                 }
               },
               // Flange yield strength at room temperature 
@@ -1949,11 +2000,11 @@ define(function () {
                   type: "text"
                 },
                 value: function value(get) {
-                  var thickness = get("T_flange");
-                  var materialType = get("flangeMaterial").mat;
-                  var material = get("flangeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[0];
+			var thickness = get("T_flange");
+			var materialType = get("flangeMaterial").mat;
+			var material = get("flangeMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[0];
                 }
               },
 	      // Flange yield strength at design temperature 
@@ -1962,18 +2013,19 @@ define(function () {
                 var: "R_{et}",
                 type: "output",
                 show: function show(get) {
-                  return get("flangeMaterial").mat == "cs";
+			var flangeMaterial = get("flangeMaterial");
+			return flangeMaterial.mat == "cs" && flangeMaterial.def == "custom";
                 },
                 desc: "Yield strength of the flange at design temperature (MPa)",
                 ui: {
-                  type: "text"
+			type: "text"
                 },
                 value: function value(get) {
-                  var thickness = get("T_flange");
-                  var materialType = get("flangeMaterial").mat;
-                  var material = get("flangeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[1];
+			var thickness = get("T_flange");
+			var materialType = get("flangeMaterial").mat;
+			var material = get("flangeMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[1];
                 }
               },
               // Flange tensile strength output block
@@ -2172,18 +2224,19 @@ define(function () {
                 var: "R_{p1t}",
                 type: "output",
                 show: function show(get) {
-                  return get("rodEndEyeMaterial").mat == "ss";
+			var rodEndEyeMaterial = get("rodEndEyeMaterial");
+			return rodEndEyeMaterial.mat == "ss" && rodEndEyeMaterial.def == "custom";
                 },
                 desc: "1% proof stress of the rod end eye at design temperature (MPa)",
                 ui: {
-                  type: "text"
+			type: "text"
                 },
                 value: function value(get) {
-                  var thickness = get("T_rod");
-                  var materialType = get("rodEndEyeMaterial").mat;
-                  var material = get("rodEndEyeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[1];
+			var thickness = get("T_rod");
+			var materialType = get("rodEndEyeMaterial").mat;
+			var material = get("rodEndEyeMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[1];
                 }
               },
               // Rod end eye material yield stress at room temperature
@@ -2192,18 +2245,18 @@ define(function () {
                 var: "R_{eh}",
                 type: "output",
                 show: function show(get) {
-                  return get("rodEndEyeMaterial").mat == "cs";
+			return get("rodEndEyeMaterial").mat == "cs";
                 },
                 desc: "Yield strength of the rod end eye at room temperature (MPa)",
                 ui: {
-                  type: "text"
+			type: "text"
                 },
                 value: function value(get) {
-                  var thickness = get("T_rod");
-                  var materialType = get("rodEndEyeMaterial").mat;
-                  var material = get("rodEndEyeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[0];
+			var thickness = get("T_rod");
+			var materialType = get("rodEndEyeMaterial").mat;
+			var material = get("rodEndEyeMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[0];
                 }
               },
 	      // Rod end eye material yield stress at design temperature
@@ -2212,18 +2265,19 @@ define(function () {
                 var: "R_{et}",
                 type: "output",
                 show: function show(get) {
-                  return get("rodEndEyeMaterial").mat == "cs";
+			var rodEndEyeMaterial = get("rodEndEyeMaterial");
+			return rodEndEyeMaterial.mat == "cs" && rodEndEyeMaterial.def == "custom";
                 },
                 desc: "Yield strength of the rod end eye at design temperature (MPa)",
                 ui: {
-                  type: "text"
+			type: "text"
                 },
                 value: function value(get) {
-                  var thickness = get("T_rod");
-                  var materialType = get("rodEndEyeMaterial").mat;
-                  var material = get("rodEndEyeMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[1];
+			var thickness = get("T_rod");
+			var materialType = get("rodEndEyeMaterial").mat;
+			var material = get("rodEndEyeMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[1];
                 }
               },
               // Rod end eye material tensile strength output block
@@ -2453,18 +2507,19 @@ define(function () {
                 var: "R_{p1t}",
                 type: "output",
                 show: function show(get) {
-                  return get("pistonMaterial").mat == "ss";
+			var pistonMaterial = get("pistonMaterial");
+			return pistonMaterial.mat == "ss" && pistonMaterial.def == "custom";
                 },
                 desc: "1% proof stress of the piston at design temperature (MPa)",
                 ui: {
-                  type: "text"
+			type: "text"
                 },
                 value: function value(get) {
-                  var thickness = (get("DI") - get("Md_piston")) / 2;
-                  var materialType = get("pistonMaterial").mat;
-                  var material = get("pistonMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[1];
+			var thickness = (get("DI") - get("Md_piston")) / 2;
+			var materialType = get("pistonMaterial").mat;
+			var material = get("pistonMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[1];
                 }
               },
               // Piston yield strength at room temperature
@@ -2493,18 +2548,19 @@ define(function () {
                 var: "R_{et}",
                 type: "output",
                 show: function show(get) {
-                  return get("pistonMaterial").mat == "cs";
+			var pistonMaterial = get("pistonMaterial");
+			return pistonMaterial.mat == "cs" && pistonMaterial.def == "custom";
                 },
                 desc: "Yield strength of the piston at design temperature (MPa)",
                 ui: {
-                  type: "text"
+			type: "text"
                 },
                 value: function value(get) {
-                  var thickness = (get("DI") - get("Md_piston")) / 2;
-                  var materialType = get("pistonMaterial").mat;
-                  var material = get("pistonMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[1];
+			var thickness = (get("DI") - get("Md_piston")) / 2;
+			var materialType = get("pistonMaterial").mat;
+			var material = get("pistonMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[1];
                 }
               },
               // Piston tensile strength output block
@@ -2604,19 +2660,20 @@ define(function () {
                 var: "R_{p1t}",
                 type: "output",
                 show: function show(get) {
-                  return get("ecMaterial").mat == "ss";
+			var ecMaterial = get("ecMaterial");
+			return ecMaterial.mat == "ss" && ecMaterial.def == "custom";
                 },
                 desc: "1% proof stress of the end cover at design temperature (MPa)",
 
                 ui: {
-                  type: "text"
+			type: "text"
                 },
                 value: function value(get) {
-                  var thickness = get("ect");
-                  var materialType = get("ecMaterial").mat;
-                  var material = get("ecMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[1];
+			var thickness = get("ect");
+			var materialType = get("ecMaterial").mat;
+			var material = get("ecMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[1];
                 }
               },
               // End cover yield strength at room temperature
@@ -2646,19 +2703,19 @@ define(function () {
                 var: "R_{et}",
                 type: "output",
                 show: function show(get) {
-                  return get("ecMaterial").mat == "cs";
+			var ecMaterial = get("ecMaterial");
+			return ecMaterial.mat == "cs" && ecMaterial.def == "custom";
                 },
                 desc: "Yield strength of the end cover at design temperature (MPa)",
-
                 ui: {
-                  type: "text"
+			type: "text"
                 },
                 value: function value(get) {
-                  var thickness = get("ect");
-                  var materialType = get("ecMaterial").mat;
-                  var material = get("ecMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[1];
+			var thickness = get("ect");
+			var materialType = get("ecMaterial").mat;
+			var material = get("ecMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[1];
                 }
               },
               // End cover tensile strength output block
@@ -2756,7 +2813,7 @@ define(function () {
                 show: function show(get) {
                   return get("ecAttachment") == "bolted";
                 },
-                desc: "Yield strength at room temperature of end cover bolts (MPa)",
+                desc: "Yield strength of end cover bolts at room temperature (MPa)",
 
                 ui: {
                   type: "text"
@@ -2830,18 +2887,19 @@ define(function () {
                 var: "R_{p1t}",
                 type: "output",
                 show: function show(get) {
-                  return get("sbMaterial").mat == "ss";
+			var sbMaterial = get("sbMaterial");
+			return sbMaterial.mat == "ss" && sbMaterial.def == "custom";
                 },
                 desc: "1% proof stress of the stuffing box at design temperature (MPa)",
                 ui: {
-                  type: "text"
+			type: "text"
                 },
                 value: function value(get) {
-                  var thickness = (get("DI") - get("OD_rod")) / 2;
-                  var materialType = get("sbMaterial").mat;
-                  var material = get("sbMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[1];
+			var thickness = (get("DI") - get("OD_rod")) / 2;
+			var materialType = get("sbMaterial").mat;
+			var material = get("sbMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[1];
                 }
               },
               // Stuffing box yield strength at room temperature
@@ -2870,18 +2928,19 @@ define(function () {
                 var: "R_{et}",
                 type: "output",
                 show: function show(get) {
-                  return get("sbMaterial").mat == "cs";
+			var sbMaterial = get("sbMaterial");
+			return sbMaterial.mat == "cs" && sbMaterial.def == "custom";
                 },
                 desc: "Yield strength of the stuffing box at design temperature (MPa)",
                 ui: {
-                  type: "text"
+			type: "text"
                 },
                 value: function value(get) {
-                  var thickness = (get("DI") - get("OD_rod")) / 2;
-                  var materialType = get("sbMaterial").mat;
-                  var material = get("sbMaterial");
-                  var data = get_yield_and_strength(thickness, material);
-                  return data[1];
+			var thickness = (get("DI") - get("OD_rod")) / 2;
+			var materialType = get("sbMaterial").mat;
+			var material = get("sbMaterial");
+			var data = get_yield_and_strength(thickness, material);
+			return data[1];
                 }
               },
               // Stuffing box tensile strength output block
@@ -3190,8 +3249,8 @@ define(function () {
             var L2e_max = L2max / eL;
 
             // Calculating moments of inertia and buckling factor
-            var I1 = calc_inertia_moment(OD, DI);
-            var I2 = calc_inertia_moment(OD_rod, DI_rod);
+            var I1 = calcInertiaMoment(OD, DI);
+            var I2 = calcInertiaMoment(OD_rod, DI_rod);
             var Z = calc_z_factor(I1, I2, eL, L1e, L2e_max);
             
             // Assigning values to object variables
@@ -3560,7 +3619,7 @@ define(function () {
             if (calcMethod == "simple_acc")
             {
               var stroke = L2max - L4;
-              SF = calc_buckling_SF_acc(this.set, delta_clearance, DI_rod, d_rod, 
+              SF = calc_buckling_sf_acc(this.set, delta_clearance, DI_rod, d_rod, 
                 OD_rod, E, g, I1, I2, L, L1, L2max, L3, L4, m_cyl, my_end_eye, 
                 sigma_rod, Pa);
               SF = round_to_decimal(SF, 3);
@@ -3593,7 +3652,7 @@ define(function () {
                 var Pa = fCurve[i]["f"];
                 var stroke = L2_chart - L4;
 
-                SF = calc_buckling_SF_acc(this.set, delta_clearance, DI_rod, d_rod, 
+                SF = calc_buckling_sf_acc(this.set, delta_clearance, DI_rod, d_rod, 
                   OD_rod, E, g, I1, I2, L, L1, L2_chart, L3_chart, L4, m_cyl, my_end_eye, 
                   sigma_rod, Pa);
                 SF = round_to_decimal(SF, 3);
@@ -3632,7 +3691,7 @@ define(function () {
                 var L3_chart = L2max - L2_chart + L3;
                 var Pa = pCurve[i]["p"] * 0.1 * 0.001 * Math.PI * DI * DI / 4; //Force in kN
 
-                SF = calc_buckling_SF_acc(this.set, delta_clearance, DI_rod, d_rod, 
+                SF = calc_buckling_sf_acc(this.set, delta_clearance, DI_rod, d_rod, 
                   OD_rod, E, g, I1, I2, L, L1, L2_chart, L3_chart, L4, m_cyl, my_end_eye, 
                   sigma_rod, Pa);
 
