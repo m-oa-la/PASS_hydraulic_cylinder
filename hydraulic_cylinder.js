@@ -264,29 +264,89 @@ function configureCylinder(handle) {
 
 function configureTube(handle) {
 	// TODO: Implement
+	var tube = {};
+	tube["material"] = handle.get("tubeMaterial");
 }
 
 function configureTubeEnd(handle) {
-	// TODO: Implement
-	var material = handle.get("tubeMaterial");
-	var type = handle.get("tubeEnd");
+	/* Configures a tube end object.
+	 * arg handle: object, page handle
+	 * return: object */
+	var tubeEnd = {};
+	tubeEnd["type"] = handle.get("tubeEnd"); // endEye, trunnion, flanged, flanged_located_at_end_cover
+	if (tubeEnd["type"] == "endEye") {
+		tubeEnd["width"] = handle.get("T_tube");
+		tubeEnd["outerR"] = handle.get("R_tube");
+		tubeEnd["innerD"] = handle.get("d_tube");
+		tubeEnd["material"] = handle.get("tubeEndEyeMaterial");
+		tubeEnd["attachment"] = handle.get("tubeEndEyeAttachment");
+		if (tubeEnd["attachment"] == "machined") {
+			
+		} else if (tubeEnd["attachment"] == "welded") {
+			tubeEnd["weldType"] = handle.get("tubeEndEyeWeldType");
+			if (tubeEnd["weldType"] == "pPen" || tubeEnd["weldType"] == "fWeld") {
+				tubeEnd["fatigue"] = handle.get("fatigueChoice1");
+				if (tubeEnd["fatigue"] == "fChoice2") {
+					tubeEnd["weldArea"] = handle.get("weld_area_tube");
+					tubeEnd["fatigueCycles"] = handle.get("n_cycles_manufacturer");
+				}
+			}
+		}
+	} else if (tubeEnd["type"] == "trunnion") {
+		tubeEnd["weldType"] = handle.get("trunnionWeldType");
+		if (tubeEnd["weldType"] == "pPen") {
+			tubeEnd["fatigue"] = handle.get("fatigueChoice3");
+			if (tubeEnd["fatigue"] == "fChoice2") {
+				tubeEnd["weldMinLeg"] = handle.get("weld_throat_trunnion");
+				tubeEnd["fatigueCycles"] = handle.get("n_cycles_manufacturer_trunnion");
+			}
+		} else if (tubeEnd["weldType"] == "fWeld") {
+			tubeEnd["fatigue"] = handle.get("fatigueChoice3");
+			if (tubeEnd["fatigue"] == "fChoice2") {
+				tubeEnd["weldThroat"] = handle.get("weld_throat_trunnion");
+				tubeEnd["fatigueCycles"] = handle.get("n_cycles_manufacturer_trunnion");
+			}
+		}
+	} else if (tubeEnd["type"] == "flanged" || tubeEnd["type"] == "flanged_located_at_end_cover") {
+		tubeEnd["flangeThickness"] = handle.get("T_flange");
+		tubeEnd["boltN"] = handle.get("n_bolt_flange");
+		tubeEnd["boltD"] = handle.get("D_bolt_flange");
+		tubeEnd["material"] = handle.get("flangeMaterial");
+		tubeEnd["weldType"] = handle.get("flangedWeldType");
+		if (tubeEnd["weldType"] == "pPen" || tubeEnd["weldType"] == "pPen1") {
+			tubeEnd["fatigue"] = handle.get("fatigueChoice4");
+			tubeEnd["weldMinLeg"] = handle.get("weld_leg_flanged");
+			if (tubeEnd["fatigue"] == "fChoice2") {
+				tubeEnd["fatigueCycles"] = handle.get("n_cycles_manufacturer_flanged");
+			}
+		} else if (tubeEnd["weldType"] == "fWeld") {
+			tubeEnd["fatigue"] = handle.get("fatigueChoice4");
+			tubeEnd["weldThroat"] = handle.get("weld_throat_flanged");
+			if (tubeEnd["fatigue"] == "fChoice2") {
+				tubeEnd["fatigueCycles"] = handle.get("n_cycles_manufacturer_flanged");
+			}
+		}
+	}
+	return tubeEnd;
 }
 
 function configureRod(handle) {
 	/* Configures a rod object.
 	 * arg handle: object, page handle
 	 * return: object */
-	var material = handle.get("rodMaterial");
-	var length = handle.get("L2max");
-	var outerD = handle.get("OD_rod");
-	var innerD = handle.get("DI_rod");
-	var inside = handle.get("rodInside");
-	var euler = handle.get("eL");
-	var inertia = calcInertia(outerD, innerD);
-	var end = configureRodEnd(handle);
+	var rod = {};
+	rod["material"] = handle.get("rodMaterial");
+	rod["length"] = handle.get("L2max");
+	rod["outerD"] = handle.get("OD_rod");
+	rod["innerD"] = handle.get("DI_rod");
+	rod["euler"] = handle.get("eL");
+	rod["inertia"] = calcInertia(outerD, innerD);
+	rod["end"] = configureRodEnd(handle);
 
-	var rod = {material: material, length: length, outerD: outerD, innerD: innerD, inside: inside,
-		euler: euler, inertia: inertia, end: end};
+	if (handle.get("tubeEnd") == "trunnion") {
+		rod["inside"] = handle.get("rodInside");
+	}
+
 	return rod;
 }
 
@@ -303,7 +363,6 @@ function configureRodEnd(handle) {
 		rodEnd["outerR"] = handle.get("R_rod");
 		rodEnd["innerD"] = handle.get("d_rod");
 		rodEnd["attachment"] = handle.get("rodEndEyeAttachment");
-		
 		if (rodEnd["attachment"] == "threaded") {
 			rodEnd["eyeThreadD"] = handle.get("Md_rod_eye");
 			rodEnd["eyeThreadP"] = handle.get("xP_rod_eye");
@@ -329,15 +388,18 @@ function configureRodEnd(handle) {
 
 function configureEndCover(handle) {
 	// TODO: Implement
+	var endCover = {};
 }
 
 function configurePiston(handle) {
 	// TODO: Implement
-	var stroke = handle.get("Stroke");
+	var piston = {};
+	piston["stroke"] = handle.get("Stroke");
 }
 
 function configureStuffingBox(handle) {
 	// TODO: Implement
+	var stuffingBox = {};
 }
 
 ////////////////////////////////////////////////////////////////
