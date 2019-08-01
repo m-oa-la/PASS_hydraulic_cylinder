@@ -232,33 +232,38 @@ function calc_nominal_stress(thickness, factors, material) {
 
 function configureCylinder(handle) {
 	// Configure the cylinder parts
-	var tube = configureTube(handle);
-	var rod = configureRod(handle);
-	var endCover = configureEndCover(handle);
-	var piston = configurePiston(handle);
-	var stuffingBox = configureStuffingBox(handle);
+	var cylinder = {};
+	cylinder["tube"] = configureTube(handle);
+	cylinder["rod"] = configureRod(handle);
+	cylinder["endCover"] = configureEndCover(handle);
+	cylinder["piston"] = configurePiston(handle);
+	cylinder["stuffingBox"] = configureStuffingBox(handle);
 
 	// Configure non-part specific information
-	var length = tube.length + rod.length;
-	var mass = handle.get("m_cyl");
-	var corrisonAllowance = 0.3;
-	var pullPressure = handle.get("DPpull");
-	var pushPressure = handle.get("DPpush");
+	cylinder["length"] = tube.length + rod.length;
+	cylinder["mass"] = handle.get("m_cyl");
+	cylinder["corrisonAllowance"] = 0.3;
+	cylinder["medium"] = handle.get("medium_type");
+	cylinder["application"] = handle.get("pv_func");
+	
+	// Calculation of actual force
+	cylinder["pullPressure"] = handle.get("DPpull");
+	cylinder["pushPressure"] = handle.get("DPpush");
+	var pullPressure = cylinder.pullPressure;
+	var pushPressure = cylinder.pushPressure;
 	var actualForce = 0;
 	var area = 0;
 	var pressure = 0;
-	if (tube.end.type == "trunnion" && rod.inside == "yes") {
+	if (cylinder.tube.end.type == "trunnion" && cyinder.rod.inside == "yes") {
 		area = calcArea(tube.innerD, rod.outerD) * Math.pow(10, -6); // Convert to SI
 		pressure = Math.max(pullPressure, pushPressure) * Math.pow(10, 5); // Convert to SI
-		actualForce = pressure * area;
+		cylinder["actualForce"] = pressure * area;
 	} else {
 		area = calcArea(tube.innerD, 0) * Math.pow(10, -6); // Convert to SI
 		pressure = pushPressure * Math.pow(10, 5); // Convert to SI
-		actualForce = pressure * area;
+		cylinder["actualForce"] = pressure * area;
 	}
 
-	var cylinder = {length: length, actualForce: actualForce, mass: mass, corrosion: corrosionAllowance,
-		tube: tube, rod: rod, endCover: endCover, piston: piston, stuffingBox: stuffingBox};
 	return cylinder;
 }
 
