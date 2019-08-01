@@ -230,6 +230,122 @@ function calc_nominal_stress(thickness, factors, material) {
 	return sigma;
 } // End of calc_nominal_stress function
 
+function configureCylinder(handle) {
+	// Configure the cylinder parts
+	var tube = configureTube(handle);
+	var rod = configureRod(handle);
+	var endCover = configureEndCover(handle);
+	var piston = configurePiston(handle);
+	var stuffingBox = configureStuffingBox(handle);
+
+	// Configure non-part specific information
+	var length = tube.length + rod.length;
+	var mass = handle.get("m_cyl");
+	var corrisonAllowance = 0.3;
+	var pullPressure = handle.get("DPpull");
+	var pushPressure = handle.get("DPpush");
+	var actualForce = 0;
+	var area = 0;
+	var pressure = 0;
+	if (tube.end.type == "trunnion" && rod.inside == "yes") {
+		area = calcArea(tube.innerD, rod.outerD) * Math.pow(10, -6); // Convert to SI
+		pressure = Math.max(pullPressure, pushPressure) * Math.pow(10, 5); // Convert to SI
+		actualForce = pressure * area;
+	} else {
+		area = calcArea(tube.innerD, 0) * Math.pow(10, -6); // Convert to SI
+		pressure = pushPressure * Math.pow(10, 5); // Convert to SI
+		actualForce = pressure * area;
+	}
+
+	var cylinder = {length: length, actualForce: actualForce, mass: mass, corrosion: corrosionAllowance,
+		tube: tube, rod: rod, endCover: endCover, piston: piston, stuffingBox: stuffingBox};
+	return cylinder;
+}
+
+function configureTube(handle) {
+	// TODO: Implement
+}
+
+function configureTubeEnd(handle) {
+	// TODO: Implement
+	var material = handle.get("tubeMaterial");
+	var type = handle.get("tubeEnd");
+}
+
+function configureRod(handle) {
+	/* Configures a rod object.
+	 * arg handle: object, page handle
+	 * return: object */
+	var material = handle.get("rodMaterial");
+	var length = handle.get("L2max");
+	var outerD = handle.get("OD_rod");
+	var innerD = handle.get("DI_rod");
+	var inside = handle.get("rodInside");
+	var euler = handle.get("eL");
+	var inertia = calcInertia(outerD, innerD);
+	var end = configureRodEnd(handle);
+
+	var rod = {material: material, length: length, outerD: outerD, innerD: innerD, inside: inside,
+		euler: euler, inertia: inertia, end: end};
+	return rod;
+}
+
+function configureRodEnd(handle) {
+	/* Configures a rod end object.
+	 * arg handle: object, page handle
+	 * return: object */
+	var type = handle.get("rodEnd");
+
+	var rodEnd = {};
+	if (type == "eyeEnd") {
+		var eyeMaterial = handle.get("rodEndEyeMaterial");
+		var eyeWidth = handle.get("T_rod");
+		var eyeOuterRadius = handle.get("R_rod");
+		var eyeInnerDiameter = handle.get("d_rod");
+		var eyeAttachment = handle.get("rodEndEyeAttachment");
+		
+		if (eyeAttachment == "threaded") {
+			var eyeThreadDiameter = handle.get("Md_rod_eye");
+			var eyeThreadPitch = handle.get("xP_rod_eye");
+			var eyeThreadLength = handle.get("Le_rod_eye");
+			rodEnd = {type: type, material: eyeMaterial, width: eyeWidth,
+				outerR: eyeOuterRadius, innerD: eyeInnerDiameter,
+				attachment: eyeAttachment, threadD: eyeThreadDiameter,
+				threadP: eyeThreadPitch, threadL: eyeThreadLength};
+		} else if (eyeAttachment == "welded") {
+			var eyeWeldType = handle.get("rodEndEyeWeldType");
+			var eyeWeldArea = handle.get("weld_area_rod");
+			var eyeFatigue = handle.get("fatigueChoice2");
+			var eyeFatigueCycles = handle.get("n_cycles_manufacturer_rod_eye");
+			rodEnd = {type: type, material: eyeMaterial, width: eyeWidth,
+				outerR: eyeOuterRadius, innerD: eyeInnerDiameter,
+				attachment: eyeAttachment, weldType: eyeWeldType, weldArea: eyeWeldArea,
+				fatigue: eyeFatigue, fatigueCycles: eyeFatigueCycles};
+		}
+	} else if (type == "threaded_fixed" || type == "threaded_pinned") {
+		var threadDiameter = handle.get("Md_rod");
+		var threadPitch = handle.get("xP_rod");
+		var threadLength = handle.get("Le_rod");
+		rodEnd = {type: type, threadD: threadDiameter, threadP: threadPitch,
+			threadL: threadLength};
+	}
+
+	return rodEnd;
+}
+
+function configureEndCover(handle) {
+	// TODO: Implement
+}
+
+function configurePiston(handle) {
+	// TODO: Implement
+	var stroke = handle.get("Stroke");
+}
+
+function configureStuffingBox(handle) {
+	// TODO: Implement
+}
+
 ////////////////////////////////////////////////////////////////
 //////////////////////// RULE FUNCTIONS ////////////////////////
 ////////////////////////////////////////////////////////////////
@@ -559,11 +675,24 @@ function calc_buckling_sf_acc(set, rodEnd, delta_clearance, d_i, d_end_eye_rod, 
 	return SF_buckling_acc;
 } // End of calc_buckling_sf_acc function
 
-function calcBucklingSfEn(calcMethod, tubeMaterial, rodMaterial, tubeDo, tubeDi, rodDo, rodDi,
+function calcBucklingSfEn(error, warn, calcMethod, tubeMaterial, rodMaterial, tubeDo, tubeDi, rodDo, rodDi,
 	Le, L1e, L2) {
 	/* Calculates the buckling safety factor of a hydraulic cylinder based on the 
 	 * buckling curve from EN 1993-1-1 as referred to in DNVGL-ST-0194 [A.5].
 	 * */
+}
+
+function bucklingSimple(handler, cylinder, tube, rod) {
+	/* arg handler: object (set, warning, error, reference)
+	 * */
+	// TODO: Implement
+}
+
+function bucklingForceCurve(handler) {
+	// TODO: Implement
+}
+
+function bucklingPressureCurve(handler) {
 	// TODO: Implement
 }
 
@@ -580,7 +709,7 @@ function calcBucklingCapacity(area, yieldStrength, bucklingLoad, alpha) {
 	return chi;
 }
 
-function calcCriticalBucklingLoad(tubeDo, tubeDi, rodDo, rodDi, L1, L2, L, E, eulerRatio) {
+function calcCriticalBucklingLoad(tubeDo, tubeDi, rodDo, rodDi, L1, L2, L, E) {
 	/* Calculates the critical buckling load of a cylinder based the method 
 	 * in DNVGL-ST-0194 [3.2.2].
 	 * arg tubeDo: float, tube outer diameter
@@ -590,8 +719,7 @@ function calcCriticalBucklingLoad(tubeDo, tubeDi, rodDo, rodDi, L1, L2, L, E, eu
 	 * arg L1: float, cylinder length from mounting center
 	 * arg L2: float, rod visible length
 	 * arg L: float, fully extracted cylinder length
-	 * arg E: float, Young's modulus 
-	 * arg eulerRatio: float, Euler equivalent ratio */
+	 * arg E: float, Young's modulus */
 	var pi = Math.PI;
 	var I1 = pi/64*(Math.pow(tubeDo,4) - Math.pow(tubeDi,4));
 	var I2 = pi/64*(Math.pow(rodDo,4) - Math.pow(rodDi,4));
@@ -3250,36 +3378,57 @@ define(function () {
         {
           desc: "Assignment and calculation of variables",
           ref: "CG-0194 [3.4]",
-          rule: function rule(OD, DI, OD_rod, DI_rod, L1, L2max, Stroke, eL)
-          {
-            // Calculating different lengths
-            var L = L1 + L2max;
-            var L2min = L2max - Stroke;
-            var L4 = L2max - Stroke;
+          rule: function rule(DPpull, DPpush, tubeMaterial, OD, DI, rodMaterial, OD_rod, DI_rod, L1, L2max, Stroke, eL, m_cyl) {
+		// General variables
+		var corrosionAllowance = 0.3;
 
-            // Length - Euler length ratios
-            var Le = L / eL;
-            var L1e = L1 / eL;
-            var L2e_min = L2min / eL;
-            var L2e_max = L2max / eL;
+		// Calculating different lengths
+		var L = L1 + L2max;
+		var L2min = L2max - Stroke;
+		var L4 = L2max - Stroke;
 
-            // Calculating moments of inertia and buckling factor
-            var I1 = calcInertiaMoment(OD, DI);
-            var I2 = calcInertiaMoment(OD_rod, DI_rod);
-            var Z = calcZFactor(I1, I2, eL, L1e, L2e_max);
+		// Length - Euler length ratios
+		var Le = L / eL;
+		var L1e = L1 / eL;
+		var L2e_min = L2min / eL;
+		var L2e_max = L2max / eL;
+
+		// Calculating moments of inertia and buckling factor
+		var I1 = calcInertiaMoment(OD, DI);
+		var I2 = calcInertiaMoment(OD_rod, DI_rod);
+		var Z = calcZFactor(I1, I2, eL, L1e, L2e_max);
+		
+		var Fa, area, pressure = 0, 0, 0;
+		if(this.get("tubeEnd") == "trunnion" && this.get("rodInside") == "yes") {
+			area = calcArea(DI, OD_rod) * Math.pow(10, -6); // Convert to SI unit
+			pressure = Math.max(DPpush, DPpull) * Math.pow(10, 5); // Convert to SI unit
+			Fa = pressure * area;
+		} else {
+			area = calcArea(DI, 0) * Math.pow(10, -6); // Convert to SI unit
+			pressure = DPpush * Math.pow(10, 5); // Convert to SI unit
+			Fa = pressure * area;
+		}
+		
+		// TODO: The tube and rod should probably have their own distinct Euler buckling length factor.
+		// TODO: Add objects for end cover and stuffing box aswell.
+		var tubeEnd = {};
+		var tube = {material: tubeMaterial, length: L1, outerD: OD, innerD: DI, inertia: I1, euler: eL};
+		var rodEnd = {};
+		var rod = {material: rodMaterial, length: L2max, outerD: OD_rod, innerD: DI_rod, inertia: I2, euler: eL};
+		var cylinder = {length: L, pullPressure: DPpull, pushPressure: DPpush, pushForce: Fa, mass: m_cyl, corrosion: corrosionAllowance, tube: tube, rod: rod};
             
-            // Assigning values to object variables
-            this.set("c", 0.3);
-            this.set("L", L);
-            this.set("L2min", L2min);
-            this.set("L4", L4);
-            this.set("Le", Le);
-            this.set("L1e", L1 / eL);
-            this.set("L2e_min", L2min / eL);
-            this.set("L2e_max", L2max / eL);
-            this.set("I1", I1);
-            this.set("I2", I2);
-            this.set("Z", Z)
+		// Assigning values to object variables
+		this.set("c", corrosionAllowance);
+		this.set("L", L);
+		this.set("L2min", L2min);
+		this.set("L4", L4);
+		this.set("Le", Le);
+		this.set("L1e", L1 / eL);
+		this.set("L2e_min", L2min / eL);
+		this.set("L2e_max", L2max / eL);
+		this.set("I1", I1);
+		this.set("I2", I2);
+		this.set("Z", Z)
           }
         },
         // End of assignment and calculation of variables rule
@@ -3744,6 +3893,9 @@ define(function () {
 		"rule": function rule(calcMethod, tubeMaterial, rodMaterial, OD, DI, OD_rod, DI_rod, 
 			L1e, Le, L2e_max, Pa, fCurve, pCurve) {
 			var E = 206000;
+			var handler = {set: this.set, error: this.error, warn: this.warn, ref: "$ref"};
+			
+
 			if (calcMethod == "en_simple") {
 				// TODO: Do something
 			} else if (calcMethod == "en_force") {
