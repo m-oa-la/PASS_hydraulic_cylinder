@@ -240,7 +240,7 @@ function configureCylinder(handle) {
 	cylinder["stuffingBox"] = configureStuffingBox(handle);
 
 	// Configure non-part specific information
-	cylinder["length"] = tube.length + rod.length;
+	cylinder["length"] = cylinder.tube.length + cylinder.rod.length;
 	cylinder["mass"] = handle.get("m_cyl");
 	cylinder["corrisonAllowance"] = 0.3;
 	cylinder["medium"] = handle.get("medium_type");
@@ -254,12 +254,12 @@ function configureCylinder(handle) {
 	var actualForce = 0;
 	var area = 0;
 	var pressure = 0;
-	if (cylinder.tube.end.type == "trunnion" && cyinder.rod.inside == "yes") {
-		area = calcArea(tube.innerD, rod.outerD) * Math.pow(10, -6); // Convert to SI
+	if (cylinder.tube.end.type == "trunnion" && cylinder.rod.inside == "yes") {
+		area = calcArea(cylinder.tube.innerD, cyinder.rod.outerD) * Math.pow(10, -6); // Convert to SI
 		pressure = Math.max(pullPressure, pushPressure) * Math.pow(10, 5); // Convert to SI
 		cylinder["actualForce"] = pressure * area;
 	} else {
-		area = calcArea(tube.innerD, 0) * Math.pow(10, -6); // Convert to SI
+		area = calcArea(cylinder.tube.innerD, 0) * Math.pow(10, -6); // Convert to SI
 		pressure = pushPressure * Math.pow(10, 5); // Convert to SI
 		cylinder["actualForce"] = pressure * area;
 	}
@@ -278,6 +278,7 @@ function configureTube(handle) {
 	tube["innerD"] = handle.get("DI");
 	tube["weldEfficiency"] = handle.get("v");
 	tube["tolerance"] = handle.get("cm_shell");
+	tube["inertia"] = calcInertiaMoment(tube.outerD, tube.innerD);
 	tube["end"] = configureTubeEnd(handle);
 	return tube;
 }
@@ -354,7 +355,7 @@ function configureRod(handle) {
 	rod["outerD"] = handle.get("OD_rod");
 	rod["innerD"] = handle.get("DI_rod");
 	rod["euler"] = handle.get("eL");
-	rod["inertia"] = calcInertia(outerD, innerD);
+	rod["inertia"] = calcInertiaMoment(rod.outerD, rod.innerD);
 	rod["end"] = configureRodEnd(handle);
 
 	if (handle.get("tubeEnd") == "trunnion") {
