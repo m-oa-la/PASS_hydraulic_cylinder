@@ -297,7 +297,7 @@ function configureRodEnd(handle) {
 	var rodEnd = {};
 	rodEnd["type"] = handle.get("rodEnd");
 	
-	if (type == "eyeEnd") {
+	if (rodEnd["type"] == "endEye") {
 		rodEnd["material"] = handle.get("rodEndEyeMaterial");
 		rodEnd["width"] = handle.get("T_rod");
 		rodEnd["outerR"] = handle.get("R_rod");
@@ -318,7 +318,7 @@ function configureRodEnd(handle) {
 				}
 			}
 		}
-	} else if (type == "threaded_fixed" || type == "threaded_pinned") {
+	} else if (rodEnd["type"] == "threaded_fixed" || rodEnd["type"] == "threaded_pinned") {
 		rodEnd["threadD"] = handle.get("Md_rod");
 		rodEnd["threadP"] = handle.get("xP_rod");
 		rodEnd["threadL"] = handle.get("Le_rod");
@@ -3392,7 +3392,9 @@ define(function () {
 		var I2 = calcInertiaMoment(OD_rod, DI_rod);
 		var Z = calcZFactor(I1, I2, eL, L1e, L2e_max);
 		
-		var Fa, area, pressure = 0, 0, 0;
+		var Fa = 0;
+		var area = 0;
+		var pressure = 0;
 		if(this.get("tubeEnd") == "trunnion" && this.get("rodInside") == "yes") {
 			area = calcArea(DI, OD_rod) * Math.pow(10, -6); // Convert to SI unit
 			pressure = Math.max(DPpush, DPpull) * Math.pow(10, 5); // Convert to SI unit
