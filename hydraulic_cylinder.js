@@ -271,7 +271,7 @@ function configureTube(handle) {
 	/* Configures a tube object.
 	 * arg handle: object, page handle
 	 * return: object */
-	var tube = {};
+	var tube = {}
 	tube["material"] = handle.get("tubeMaterial");
 	tube["length"] = handle.get("L1");
 	tube["outerD"] = handle.get("OD");
@@ -401,7 +401,7 @@ function configureRodEnd(handle) {
 }
 
 function configureEndCover(handle) {
-	/* Configures a piston object.
+	/* Configures a end cover object.
 	 * arg handle: object, page handle
 	 * return: object */
 	var endCover = {};
@@ -411,14 +411,24 @@ function configureEndCover(handle) {
 	if (endCover.attachment == "welded") {
 		endCover["steeringLength"] = handle.get("L_steering_edge");
 	} else if (endCover.attachment == "bolted") {
-		endCover["boltMaterial"] = handle.get("ecBoltMaterial");
-		endCover["boltNominalD"] = handle.get("d_n_bolt_ec");
-		endCover["boltN"] = handle.get("n_bolts_ec");
-		endCover["boltThreadP"] = handle.get("L_p_bolt_ec");
-		endCover["boltThreadL"] = handle.get("l_thread_bolt_ec");
-		endCover["boltStressArea"] = handle.get("A_s_bolt_ec");
-		endCover["boltPitchCircleD"] = handle.get("C_bolt_circle");
+		endCover["bolt"] = configureEndCoverBolt(handle);
 	}
+	return endCover;
+}
+
+function configureEndCoverBolt(handle) {
+	/* Configures a end cover bolt object.
+	 * arg handle: object, page handle
+	 * return: object */
+	var bolt = {};
+	bolt["material"] = handle.get("ecBoltMaterial");
+	bolt["nominalD"] = handle.get("d_n_bolt_ec");
+	bolt["number"] = handle.get("n_bolts_ec");
+	bolt["threadP"] = handle.get("L_p_bolt_ec");
+	bolt["threadL"] = handle.get("l_thread_bolt_ec");
+	bolt["stressA"] = handle.get("A_s_bolt_ec");
+	bolt["circleD"] = handle.get("C_bolt_circle");
+	return bolt;
 }
 
 function configurePiston(handle) {
@@ -428,7 +438,7 @@ function configurePiston(handle) {
 	var piston = {};
 	piston["material"] = handle.get("pistonMaterial");
 	piston["stroke"] = handle.get("Stroke");
-	piston["guidingLength"] = handle.get("L3");
+	piston["guidingL"] = handle.get("L3");
 	piston["threadD"] = handle.get("Md_piston");
 	piston["threadP"] = handle.get("xP_piston");
 	piston["threadL"] = handle.get("Le_piston");
@@ -436,11 +446,36 @@ function configurePiston(handle) {
 }
 
 function configureStuffingBox(handle) {
-	/* Configures a piston object.
+	/* Configures a stuffing box object.
 	 * arg handle: object, page handle
 	 * return: object */
-	// TODO: Implement
 	var stuffingBox = {};
+	stuffingBox["material"] = handle.get("sbMaterial");
+	stuffingBox["attachment"] = handle.get("sbAttachment");
+	stuffingBox["threadType"] = handle.get("sbThreadType");
+	if (stuffingBox.attachment == "threaded") {
+		stuffingBox["threadMetricD"] = handle.get("Md_sb");
+		stuffingBox["threadP"] = handle.get("xP_sb");
+		stuffingBox["threadL"] = handle.get("Le_sb");
+		stuffingBox["threadReliefD"] = handle.get("Du");
+	} else if (stuffingBox.attachment == "bolted") {
+		stuffingBox["bolt"] = configureStuffingBoxBolt(handle);
+	}
+	return stuffingBox;
+}
+
+function configureStuffingBoxBolt(handle) {
+	/* Configures a stuffing box bolt object.
+	 * arg handle: object, page handle
+	 * return: object */
+	var bolt = {};
+	bolt["material"] = handle.get("sbBoltMaterial");
+	bolt["number"] = handle.get("n_bolts");
+	bolt["nominalD"] = handle.get("d_n_bolt");
+	bolt["threadP"] = handle.get("L_p_bolt");
+	bolt["stressA"] = handle.get("A_s_bolt");
+	bolt["threadL"] = handle.get("l_thread_bolt")
+	return bolt;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -3010,7 +3045,7 @@ define(function () {
                 name: "A_s_bolt_ec",
                 type: "input",
                 ui: "number",
-                desc: "Stress area for one bolt, mm^2",
+                desc: "Bolt stress area (per bolt), mm^2",
                 show: function show(get) {
                   return get("ecAttachment") == "bolted";
                 }
@@ -3030,7 +3065,7 @@ define(function () {
                 name: "l_thread_bolt_ec",
                 type: "input",
                 ui: "number",
-                desc: "Threaded length bolt, mm",
+                desc: "Bolt thread length, mm",
                 show: function show(get) {
                   return get("ecAttachment") == "bolted";
                 }
