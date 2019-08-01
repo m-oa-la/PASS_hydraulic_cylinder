@@ -401,12 +401,30 @@ function configureRodEnd(handle) {
 }
 
 function configureEndCover(handle) {
-	// TODO: Implement
+	/* Configures a piston object.
+	 * arg handle: object, page handle
+	 * return: object */
 	var endCover = {};
+	endCover["material"] = handle.get("ecMaterial");
+	endCover["thickness"] = handle.get("ect");
+	endCover["attachment"] = handle.get("ecAttachment");
+	if (endCover.attachment == "welded") {
+		endCover["steeringLength"] = handle.get("L_steering_edge");
+	} else if (endCover.attachment == "bolted") {
+		endCover["boltMaterial"] = handle.get("ecBoltMaterial");
+		endCover["boltNominalD"] = handle.get("d_n_bolt_ec");
+		endCover["boltN"] = handle.get("n_bolts_ec");
+		endCover["boltThreadP"] = handle.get("L_p_bolt_ec");
+		endCover["boltThreadL"] = handle.get("l_thread_bolt_ec");
+		endCover["boltStressArea"] = handle.get("A_s_bolt_ec");
+		endCover["boltPitchCircleD"] = handle.get("C_bolt_circle");
+	}
 }
 
 function configurePiston(handle) {
-	// TODO: Implement
+	/* Configures a piston object.
+	 * arg handle: object, page handle
+	 * return: object */
 	var piston = {};
 	piston["material"] = handle.get("pistonMaterial");
 	piston["stroke"] = handle.get("Stroke");
@@ -418,6 +436,9 @@ function configurePiston(handle) {
 }
 
 function configureStuffingBox(handle) {
+	/* Configures a piston object.
+	 * arg handle: object, page handle
+	 * return: object */
 	// TODO: Implement
 	var stuffingBox = {};
 }
