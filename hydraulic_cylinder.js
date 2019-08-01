@@ -268,9 +268,18 @@ function configureCylinder(handle) {
 }
 
 function configureTube(handle) {
-	// TODO: Implement
+	/* Configures a tube object.
+	 * arg handle: object, page handle
+	 * return: object */
 	var tube = {};
 	tube["material"] = handle.get("tubeMaterial");
+	tube["length"] = handle.get("L1");
+	tube["outerD"] = handle.get("OD");
+	tube["innerD"] = handle.get("DI");
+	tube["weldEfficiency"] = handle.get("v");
+	tube["tolerance"] = handle.get("cm_shell");
+	tube["end"] = configureTubeEnd(handle);
+	return tube;
 }
 
 function configureTubeEnd(handle) {
@@ -399,7 +408,13 @@ function configureEndCover(handle) {
 function configurePiston(handle) {
 	// TODO: Implement
 	var piston = {};
+	piston["material"] = handle.get("pistonMaterial");
 	piston["stroke"] = handle.get("Stroke");
+	piston["guidingLength"] = handle.get("L3");
+	piston["threadD"] = handle.get("Md_piston");
+	piston["threadP"] = handle.get("xP_piston");
+	piston["threadL"] = handle.get("Le_piston");
+	return piston;
 }
 
 function configureStuffingBox(handle) {
