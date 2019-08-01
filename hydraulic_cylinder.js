@@ -294,40 +294,34 @@ function configureRodEnd(handle) {
 	/* Configures a rod end object.
 	 * arg handle: object, page handle
 	 * return: object */
-	var type = handle.get("rodEnd");
-
 	var rodEnd = {};
+	rodEnd["type"] = handle.get("rodEnd");
+	
 	if (type == "eyeEnd") {
-		var eyeMaterial = handle.get("rodEndEyeMaterial");
-		var eyeWidth = handle.get("T_rod");
-		var eyeOuterRadius = handle.get("R_rod");
-		var eyeInnerDiameter = handle.get("d_rod");
-		var eyeAttachment = handle.get("rodEndEyeAttachment");
+		rodEnd["material"] = handle.get("rodEndEyeMaterial");
+		rodEnd["width"] = handle.get("T_rod");
+		rodEnd["outerR"] = handle.get("R_rod");
+		rodEnd["innerD"] = handle.get("d_rod");
+		rodEnd["attachment"] = handle.get("rodEndEyeAttachment");
 		
-		if (eyeAttachment == "threaded") {
-			var eyeThreadDiameter = handle.get("Md_rod_eye");
-			var eyeThreadPitch = handle.get("xP_rod_eye");
-			var eyeThreadLength = handle.get("Le_rod_eye");
-			rodEnd = {type: type, material: eyeMaterial, width: eyeWidth,
-				outerR: eyeOuterRadius, innerD: eyeInnerDiameter,
-				attachment: eyeAttachment, threadD: eyeThreadDiameter,
-				threadP: eyeThreadPitch, threadL: eyeThreadLength};
-		} else if (eyeAttachment == "welded") {
-			var eyeWeldType = handle.get("rodEndEyeWeldType");
-			var eyeWeldArea = handle.get("weld_area_rod");
-			var eyeFatigue = handle.get("fatigueChoice2");
-			var eyeFatigueCycles = handle.get("n_cycles_manufacturer_rod_eye");
-			rodEnd = {type: type, material: eyeMaterial, width: eyeWidth,
-				outerR: eyeOuterRadius, innerD: eyeInnerDiameter,
-				attachment: eyeAttachment, weldType: eyeWeldType, weldArea: eyeWeldArea,
-				fatigue: eyeFatigue, fatigueCycles: eyeFatigueCycles};
+		if (rodEnd["attachment"] == "threaded") {
+			rodEnd["eyeThreadD"] = handle.get("Md_rod_eye");
+			rodEnd["eyeThreadP"] = handle.get("xP_rod_eye");
+			rodEnd["eyeThreadL"] = handle.get("Le_rod_eye");
+		} else if (rodEnd["attachment"] == "welded") {
+			rodEnd["weldType"] = handle.get("rodEndEyeWeldType");
+			if (rodEnd["weldType"] == "pPen" || rodEnd["weldType"] == "fWeld") {
+				rodEnd["fatigue"] = handle.get("fatigueChoice2");
+				if (rodEnd["fatigue"] == "fChoice2") {
+					rodEnd["weldArea"] = handle.get("weld_area_rod");
+					rodEnd["fatigueCycles"]= handle.get("n_cycles_manufacturer_rod_eye");
+				}
+			}
 		}
 	} else if (type == "threaded_fixed" || type == "threaded_pinned") {
-		var threadDiameter = handle.get("Md_rod");
-		var threadPitch = handle.get("xP_rod");
-		var threadLength = handle.get("Le_rod");
-		rodEnd = {type: type, threadD: threadDiameter, threadP: threadPitch,
-			threadL: threadLength};
+		rodEnd["threadD"] = handle.get("Md_rod");
+		rodEnd["threadP"] = handle.get("xP_rod");
+		rodEnd["threadL"] = handle.get("Le_rod");
 	}
 
 	return rodEnd;
