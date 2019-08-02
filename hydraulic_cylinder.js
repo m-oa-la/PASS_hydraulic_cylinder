@@ -288,6 +288,8 @@ function configureTube(handle) {
 	tube["innerD"] = handle.get("DI");
 	tube["weldEfficiency"] = handle.get("v");
 	tube["tolerance"] = handle.get("cm_shell");
+	tube["eulerFactor"] = handle.get("eL");
+	tube["area"] = calcArea(tube.outerD, tube.innerD);
 	tube["inertia"] = calcInertiaMoment(tube.outerD, tube.innerD);
 	tube["end"] = configureTubeEnd(handle);
 	return tube;
@@ -369,7 +371,8 @@ function configureRod(handle) {
 	rod["length"] = handle.get("L2max");
 	rod["outerD"] = handle.get("OD_rod");
 	rod["innerD"] = handle.get("DI_rod");
-	rod["euler"] = handle.get("eL");
+	rod["eulerFactor"] = handle.get("eL");
+	rod["area"] = calcArea(rod.outerD, rod.innerD);
 	rod["inertia"] = calcInertiaMoment(rod.outerD, rod.innerD);
 	rod["end"] = configureRodEnd(handle);
 
@@ -565,55 +568,6 @@ function rule_thread_stress(set, error, warn, part_name, Md, xP, Le, DI, OD, mat
 		+ mat2 + " MPa.");
 	}
 } // End of rule_thread_stress function
-
-// END COVER RULE FUNCTIONS
-function rule_ec_thickness(set, error, warn, ec_attachment)
-{
-	if (ec_attachment != "welded")
-	{
-		return;
-	}
-	else
-	{
-		return;
-	}
-}
-  
-/*
-var rule_ec_thickness_shell = function rule_ec_thickness_shell(set, error, warn, 
-  ec_attachment)
-{
-  if (ec_attachment != "welded") 
-  {
-    return;
-  }
-
-  if (tubeEnd == "endEye")
-  {
-    var ect_shell_factor = 3;
-    var shell_thickness = (OD - DI) / 2;
-
-    if (ect < ect_shell_factor * shell_thickness)
-    {
-      this.error([], "The end cover thickness is not sufficient. \
-        For cylinders with an end eye connection at the tube end the \
-        required end cover thickness needs to be " + ect_shell_factor
-        + " times larger than the tube wall thickness: " + ect + "mm < " 
-        + ect_shell_factor + " * " + shell_thickness + " mm. Please refer \
-        to $ref.");
-    }
-    else 
-    {
-      this.warn([], "The end cover thickness is sufficient with \
-        respect to the tube wall thickness. For cylinders with an \
-        end eye connection at the tube end the required end cover \
-        thickness needs to be " + ect_shell_factor + " times larger \
-        than the tube wall thickness: " + ect + "mm < " + ect_shell_factor 
-        + " * " + shell_thickness + " mm. Please refer to $ref.");
-    }
-  }
-}
-*/
 
 // FATIGUE RULES
 function calc_fatigue(set, error, warn, part_name, F_push, F_pull, weld_type,
@@ -828,35 +782,47 @@ function calc_buckling_sf_acc(set, rodEnd, delta_clearance, d_i, d_end_eye_rod, 
 	return SF_buckling_acc;
 } // End of calc_buckling_sf_acc function
 
-function calcBucklingSfEn(error, warn, calcMethod, tubeMaterial, rodMaterial, tubeDo, tubeDi, rodDo, rodDi,
-	Le, L1e, L2) {
+function calcBucklingSfEn(criticalLoad, actualLoad, tubeArea, tubeYield, rodArea, rodYield, alpha) {
 	/* Calculates the buckling safety factor of a hydraulic cylinder based on the 
 	 * buckling curve from EN 1993-1-1 as referred to in DNVGL-ST-0194 [A.5].
-	 * */
+	 * arg criticalLoad: float, buckling load according to [3.2.2]
+	 * arg actualLoad: float, actual maximum pushing force
+	 * arg tubeArea:
+	 * return: float */
+	if (typeof alpha == "undefined") {
+		alpha = 0.49;
+	}
+	var tubeCapacity = calcBucklingCapacity(criticalLoad, tubeArea, tubeYield, alpha);
+	var tubeLoad = tubeCapacity * tubeArea * tubeYield;
+	var rodCapacity = calcBucklingCapacity(criticalLoad, rodArea, rodYield, alpha);
+	var rodLoad = rodCapacity * rodArea * rodYield;
+	var bucklingLoad = Math.min(tubeLoad, rodLoad);
+	var safetyFactor = bucklingLoad/actualLoad;
+	return safetyFactor;
 }
 
-function bucklingSimple(handler, cylinder, tube, rod) {
+function bucklingSimple(handle, cylinder) {
 	/* arg handler: object (set, warning, error, reference)
 	 * */
 	// TODO: Implement
 }
 
-function bucklingForceCurve(handler) {
+function bucklingForceCurve(handle, cylinder) {
 	// TODO: Implement
 }
 
-function bucklingPressureCurve(handler) {
+function bucklingPressureCurve(handle, cylinder) {
 	// TODO: Implement
 }
 
-function calcBucklingCapacity(area, yieldStrength, bucklingLoad, alpha) {
+function calcBucklingCapacity(criticalLoad, area, yield, alpha) {
 	/* Calculates the buckling capacity of a circular part based on the method in
 	 * DNVGL-ST-0194 [A.5.3].
 	 * arg area: float, cross section area
 	 * arg yieldStrength: float, yield strength
 	 * arg bucklingLoad: float, buckling load 
 	 * arg alpha: float, imperfection factor (0.49 for buckling curve c) */
-	var lambda = Math.sqrt(area * yieldStrength / bucklingLoad);
+	var lambda = Math.sqrt(area * yield/ criticalLoad);
 	var phi = 0.5 * (1 + alpha*(lambda - 0.2) + Math.pow(lambda,2));
 	var chi = 1 / (phi*Math.sqrt(Math.pow(phi,2) - Math.pow(lambda,2)));
 	return chi;
@@ -3564,14 +3530,6 @@ define(function () {
 			Fa = pressure * area;
 		}
 		
-		// TODO: The tube and rod should probably have their own distinct Euler buckling length factor.
-		// TODO: Add objects for end cover and stuffing box aswell.
-		var tubeEnd = {};
-		var tube = {material: tubeMaterial, length: L1, outerD: OD, innerD: DI, inertia: I1, euler: eL};
-		var rodEnd = {};
-		var rod = {material: rodMaterial, length: L2max, outerD: OD_rod, innerD: DI_rod, inertia: I2, euler: eL};
-		var cylinder = {length: L, pullPressure: DPpull, pushPressure: DPpush, pushForce: Fa, mass: m_cyl, corrosion: corrosionAllowance, tube: tube, rod: rod};
-            
 		// Assigning values to object variables
 		this.set("c", corrosionAllowance);
 		this.set("L", L);
