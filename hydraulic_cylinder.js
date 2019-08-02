@@ -266,10 +266,12 @@ function configureCylinder(handle) {
 	
 	// Buckling safety factor calculation method
 	cylinder["bucklingMethod"] = handle.get("calcMethod");
-	if (cylinder.bucklingMethod.indexOf("force") != -1) {
-		cylinder["forceCurve"] = handle.get("fCurve");
-	} else if (cylinder.bucklingMethod.indexOf("pressure") != -1) {
-		cylinder["pressureCurve"] = handle.get("pCurve");
+	if (typeof cylinder.bucklingMethod != "undefined") {
+		if (cylinder.bucklingMethod.indexOf("force") != -1) {
+			cylinder["forceCurve"] = handle.get("fCurve");
+		} else if (cylinder.bucklingMethod.indexOf("pressure") != -1) {
+			cylinder["pressureCurve"] = handle.get("pCurve");
+		}
 	}
 
 	return cylinder;
