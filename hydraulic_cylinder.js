@@ -356,7 +356,7 @@ function configureTubeEnd(handle) {
 	}
 
 	var calcMethod = handle.get("calcMethod");
-	if (calcMethod == "simple_acc" || calcMethod == "advanced-force_acc" || calcMethod == "advanced-pressure_acc"){
+	if (calcMethod == "accurate_static" || calcMethod == "accurate_force" || calcMethod == "accurate_pressure"){
 		tubeEnd["friction"] = handle.get("my_end_eye");
 	}
 	return tubeEnd;
@@ -417,7 +417,7 @@ function configureRodEnd(handle) {
 	}
 	
 	var calcMethod = handle.get("calcMethod");
-	if (calcMethod == "simple_acc" || calcMethod == "advanced-force_acc" || calcMethod == "advanced-pressure_acc"){
+	if (calcMethod == "accurate_static" || calcMethod == "accurate_force" || calcMethod == "accurate_pressure"){
 		rodEnd["friction"] = handle.get("my_end_eye");
 	}
 
@@ -782,12 +782,16 @@ function calc_buckling_sf_acc(set, rodEnd, delta_clearance, d_i, d_end_eye_rod, 
 	return SF_buckling_acc;
 } // End of calc_buckling_sf_acc function
 
-function calcBucklingSfEn(criticalLoad, actualLoad, tubeArea, tubeYield, rodArea, rodYield, alpha) {
+function safetyFactorEN(criticalLoad, actualLoad, tubeArea, tubeYield, rodArea, rodYield, alpha) {
 	/* Calculates the buckling safety factor of a hydraulic cylinder based on the 
 	 * buckling curve from EN 1993-1-1 as referred to in DNVGL-ST-0194 [A.5].
-	 * arg criticalLoad: float, buckling load according to [3.2.2]
-	 * arg actualLoad: float, actual maximum pushing force
-	 * arg tubeArea:
+	 * arg criticalLoad: float, buckling load according to [3.2.2] [N]
+	 * arg actualLoad: float, actual maximum pushing force [N]
+	 * arg tubeArea: float, tube cross section area [mm^2]
+	 * arg tubeYield: float, tube yield stress [MPa]
+	 * arg rodArea: float, rod cross section area [mm^2]
+	 * arg rodYield: float, rod yield stress [MPA]
+	 * arg alpha: imperfection factor [-]
 	 * return: float */
 	if (typeof alpha == "undefined") {
 		alpha = 0.49;
@@ -802,7 +806,27 @@ function calcBucklingSfEn(criticalLoad, actualLoad, tubeArea, tubeYield, rodArea
 }
 
 function bucklingSimple(handle, cylinder) {
-	/* arg handler: object (set, warning, error, reference)
+	// TODO: Implement
+	var requiredSafetyFactor = 4.0;
+	if (cylinder.bucklingMethod == "") {
+	} else if (cylinder.bucklingMethod == "") {
+	} else if (cylinder.bucklingMethod == "") {
+	}
+}
+
+function bucklingAccurate(handle, cylinder) {
+	// TODO: Implement
+	var requiredSafetyFactor = 2.7;
+}
+
+function bucklingEN(handle, cylinder) {
+	// TODO: Implement
+	var requiredSafetyFactor = 2.0;
+}
+
+
+function bucklingStatic(handle, cylinder) {
+	/* arg handler: object (set, warning, error, reference, requiredSafetyFactor)
 	 * */
 	// TODO: Implement
 }
@@ -924,13 +948,13 @@ var uiBoltMaterial = {
 var uiCalcMethod = {
   type: "dropdown",
   options: function options(get) {
-    var items = [{ text: "Method [3.3.2]", value: "simple" }, 
-	    { text: "Method [3.3.2], stroke-force curve", value: "advanced-force" }, 
-	    { text: "Method [3.3.3], stroke-pressure curve", value: "advanced-pressure" },
-	    { text: "Method [A.4]", value: "simple_acc" },
-	    { text: "Method [A.4], stroke-force curve", value: "advanced-force_acc" }, 
-	    { text: "Method [A.4], stroke-pressure curve", value: "advanced-pressure_acc" }, 
-	    { text: "Method [A.5]", value: "en_simple" }, 
+    var items = [{ text: "Method [3.3.2]", value: "simple_static" }, 
+	    { text: "Method [3.3.2], stroke-force curve", value: "simple_force" }, 
+	    { text: "Method [3.3.3], stroke-pressure curve", value: "simple_pressure" },
+	    { text: "Method [A.4]", value: "accurate_static" },
+	    { text: "Method [A.4], stroke-force curve", value: "accurate_force" }, 
+	    { text: "Method [A.4], stroke-pressure curve", value: "accurate_pressure" }, 
+	    { text: "Method [A.5]", value: "en_static" }, 
 	    { text: "Method [A.5], stroke-force curve", value: "en_force" }, 
 	    { text: "Method [A.5], stroke-pressure curve", value: "en_pressure" }];
     
@@ -1521,24 +1545,24 @@ define(function () {
               itNumPos("L3", "Guiding length of piston in cylinder tube (mm)", "L_3", 
                 "The Guiding length of piston in cylinder tube as given on the general arrangement drawing", function show(get) {
 			var calcMethod = get("calcMethod");
-                	return calcMethod == "simple_acc" || calcMethod == "advanced-force_acc" || calcMethod == "advanced-pressure_acc";
+                	return calcMethod == "accurate_static" || calcMethod == "accurate_force" || calcMethod == "accurate_pressure";
               }),
               //
               itNumPos("m_cyl", "The weigth of the cylinder, kg", "m", undefined, function show(get) {
 		      	var calcMethod = get("calcMethod");
-                	return calcMethod == "simple_acc" || calcMethod == "advanced-force_acc" || calcMethod == "advanced-pressure_acc";
+                	return calcMethod == "accurate_static" || calcMethod == "accurate_force" || calcMethod == "accurate_pressure";
               }),
               //
               itNumPos("my_end_eye", "Coefficient of friction for end eyes [Default: 0.19]", undefined, undefined, function show(get) {
 			var calcMethod = get("calcMethod");
-                	return calcMethod == "simple_acc" || calcMethod == "advanced-force_acc" || calcMethod == "advanced-pressure_acc";
+                	return calcMethod == "accurate_static" || calcMethod == "accurate_force" || calcMethod == "accurate_pressure";
               }), {
                 name: "fCurve",
                 type: "input",
                 desc: "Enter the stroke points and corresponding force for evaluation",
                 show: function show(get) {
 			var calcMethod = get("calcMethod");
-                  	return calcMethod == "advanced-force" || calcMethod == "advanced-force_acc" || calcMethod == "en_force";
+                  	return calcMethod == "simple_force" || calcMethod == "accurate_force" || calcMethod == "en_force";
                 },
                 ui: {
                   type: "table",
@@ -1551,7 +1575,7 @@ define(function () {
                 desc: "Enter the stroke points and corresponding pressure for evaluation",
                 show: function show(get) {
 			var calcMethod = get("calcMethod");
-                  return calcMethod == "advanced-pressure" || calcMethod == "advanced-pressure_acc" || calcMethod == "en_pressure";
+                  return calcMethod == "simple_pressure" || calcMethod == "accurate_pressure" || calcMethod == "en_pressure";
                 },
                 ui: {
                   type: "table",
@@ -3784,7 +3808,7 @@ define(function () {
             }
             this.set("Pa", Pa);
             // Buckling calculation method
-            if (calcMethod == "simple")
+            if (calcMethod == "simple_static")
             {
               var PE = 206000 * Math.PI * Math.PI / (1000 * Le * Z);
               this.set("PE", PE);
@@ -3803,7 +3827,7 @@ define(function () {
               return;
             } 
             // Buckling calculation method (stroke-force curve)
-            else if (calcMethod == "advanced-force") 
+            else if (calcMethod == "simple_force") 
             {
               if (fCurve.length < 2) {
                 this.error([], "Stroke data: Expects a table with at least two rows");
@@ -3834,7 +3858,7 @@ define(function () {
               }
             } 
             // Buckling calculation method (stroke-pressure curve)
-            else if (calcMethod == "advanced-pressure") 
+            else if (calcMethod == "simple_pressure") 
             {
               if (pCurve.length < 2) 
               {
@@ -3893,7 +3917,7 @@ define(function () {
 		var sigma_rod = materialData[0]; 
 
             // Accurate buckling calculation method
-            if (calcMethod == "simple_acc")
+            if (calcMethod == "accurate_static")
             {
               var stroke = L2max - L4;
               SF = calc_buckling_sf_acc(this.set, rodEnd, delta_clearance, DI_rod, d_rod, 
@@ -3914,7 +3938,7 @@ define(function () {
               }
             }
             // Accurate buckling calculation method (stroke-force curve)
-            else if (calcMethod == "advanced-force_acc")
+            else if (calcMethod == "accurate_force")
             {
               if (fCurve.length < 2)
               {
@@ -3952,7 +3976,7 @@ define(function () {
               }
             }
             // Accurate buckling calculation method (stroke-pressure curve)
-            else if (calcMethod == "advanced-pressure_acc")
+            else if (calcMethod == "accurate_pressure")
             {
               if (pCurve.length < 2)
               {
@@ -4009,7 +4033,7 @@ define(function () {
 			var handler = {set: this.set, error: this.error, warn: this.warn, ref: "$ref"};
 			
 
-			if (calcMethod == "en_simple") {
+			if (calcMethod == "en_static") {
 				// TODO: Do something
 			} else if (calcMethod == "en_force") {
 				// TODO: Do something
