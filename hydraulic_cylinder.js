@@ -839,14 +839,14 @@ function bucklingPressureCurve(handle, cylinder) {
 	// TODO: Implement
 }
 
-function calcBucklingCapacity(criticalLoad, area, yield, alpha) {
+function calcBucklingCapacity(criticalLoad, area, yieldStrength, alpha) {
 	/* Calculates the buckling capacity of a circular part based on the method in
 	 * DNVGL-ST-0194 [A.5.3].
-	 * arg area: float, cross section area
-	 * arg yieldStrength: float, yield strength
-	 * arg bucklingLoad: float, buckling load 
-	 * arg alpha: float, imperfection factor (0.49 for buckling curve c) */
-	var lambda = Math.sqrt(area * yield/ criticalLoad);
+	 * arg area: float, cross section area [mm^2]
+	 * arg yieldStrength: float, yield strength [MPA]
+	 * arg bucklingLoad: float, buckling load [N]
+	 * arg alpha: float, imperfection factor (0.49 for buckling curve c) [-] */
+	var lambda = Math.sqrt(area*yieldStrength/criticalLoad);
 	var phi = 0.5 * (1 + alpha*(lambda - 0.2) + Math.pow(lambda,2));
 	var chi = 1 / (phi*Math.sqrt(Math.pow(phi,2) - Math.pow(lambda,2)));
 	return chi;
