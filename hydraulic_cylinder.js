@@ -263,6 +263,14 @@ function configureCylinder(handle) {
 		pressure = pushPressure * Math.pow(10, 5); // Convert to SI
 		cylinder["actualForce"] = pressure * area;
 	}
+	
+	// Buckling safety factor calculation method
+	cylinder["bucklingMethod"] = handle.get("calcMethod");
+	if (cylinder.bucklingMethod.indexOf("force") != -1) {
+		cylinder["forceCurve"] = handle.get("fCurve");
+	} else if (cylinder.bucklingMethod.indexOf("pressure") != -1) {
+		cylinder["pressureCurve"] = handle.get("pCurve");
+	}
 
 	return cylinder;
 }
@@ -342,6 +350,11 @@ function configureTubeEnd(handle) {
 			}
 		}
 	}
+
+	var calcMethod = handle.get("calcMethod");
+	if (calcMethod == "simple_acc" || calcMethod == "advanced-force_acc" || calcMethod == "advanced-pressure_acc"){
+		tubeEnd["friction"] = handle.get("my_end_eye");
+	}
 	return tubeEnd;
 }
 
@@ -396,6 +409,11 @@ function configureRodEnd(handle) {
 		rodEnd["threadD"] = handle.get("Md_rod");
 		rodEnd["threadP"] = handle.get("xP_rod");
 		rodEnd["threadL"] = handle.get("Le_rod");
+	}
+	
+	var calcMethod = handle.get("calcMethod");
+	if (calcMethod == "simple_acc" || calcMethod == "advanced-force_acc" || calcMethod == "advanced-pressure_acc"){
+		rodEnd["friction"] = handle.get("my_end_eye");
 	}
 
 	return rodEnd;
