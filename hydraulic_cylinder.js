@@ -240,7 +240,9 @@ function configureCylinder(handle) {
 	cylinder["stuffingBox"] = configureStuffingBox(handle);
 
 	// Configure non-part specific information
-	cylinder["length"] = cylinder.tube.length + cylinder.rod.length;
+	cylinder["maxLength"] = cylinder.tube.length + cylinder.rod.maxLength;
+	cylinder["minLength"] = cylinder.tube.length + cylinder.rod.minLength;
+	cylinder["euler"] = handle.get("eL");
 	cylinder["mass"] = handle.get("m_cyl");
 	cylinder["corrisonAllowance"] = 0.3;
 	cylinder["medium"] = handle.get("medium_type");
@@ -251,18 +253,14 @@ function configureCylinder(handle) {
 	cylinder["pushPressure"] = handle.get("DPpush");
 	var pullPressure = cylinder.pullPressure;
 	var pushPressure = cylinder.pushPressure;
-	var force = 0;
-	var area = 0;
+	var area = cylinder.piston.area * Math.pow(10, -6); // Convert to SI
 	var pressure = 0;
 	if (cylinder.tube.end.typeForce == "trunnion" && cylinder.rod.inside == "yes") {
-		area = calcArea(cylinder.tube.innerD, cyinder.rod.outerD) * Math.pow(10, -6); // Convert to SI
 		pressure = Math.max(pullPressure, pushPressure) * Math.pow(10, 5); // Convert to SI
-		cylinder["force"] = pressure * area;
 	} else {
-		area = calcArea(cylinder.tube.innerD, 0) * Math.pow(10, -6); // Convert to SI
 		pressure = pushPressure * Math.pow(10, 5); // Convert to SI
-		cylinder["force"] = pressure * area;
 	}
+	cylinder["force"] = pressure * area;
 	
 	// Buckling safety factor calculation method
 	cylinder["bucklingMethod"] = handle.get("calcMethod");
@@ -273,9 +271,7 @@ function configureCylinder(handle) {
 			cylinder["pressureCurve"] = handle.get("pCurve");
 		}
 	}
-	cylinder["maxLength"] = cylinder.tube.length + cylinder.rod.maxLength;
-	cylinder["minLength"] = cylinder.tube.length + cylinder.rod.minLength;
-	cylinder["euler"] = handle.get("eL");
+	
 	return cylinder;
 }
 
@@ -803,20 +799,19 @@ function bucklingStatic(cylinder) {
 	var rod = cylinder.rod;
 	var piston = cylinder.piston;
 	var safetyFactor = 0;
-	var rodYield = 0;
+	var tubeYield = getYieldAndStrength(tube.thickness, tube.material)[0];
+	var rodYield = getYieldAndStrength(rod.thickness, rod.material)[0];
 	if (cylinder.bucklingMethod == "simple_static"){
-		safetyFactor = safetyFactorSimple(cylinder.force, cylinder.length/cylinder.euler, 
+		safetyFactor = safetyFactorSimple(cylinder.force, cylinder.maxLength/cylinder.euler, 
 			tube.length/tube.euler, tube.inertia, rod.maxLength/rod.euler, rod.inertia, undefined);
 	} else if (cylinder.bucklingMethod == "accurate_static") {
-		var rodYield = getYieldAndStrength(rod.thickness, rod.material);
-		safetyFactor = safetyFactorAccurate(cylinder.length/cylinder.euler, tube.length/tube.euler,
-			tube.inertia, rod.length/rod.euler, rod.inertia, piston.guideLength, rod.area,
+		safetyFactor = safetyFactorAccurate(cylinder.maxLength/cylinder.euler, tube.length/tube.euler,
+			tube.inertia, rod.maxLength/rod.euler, rod.inertia, piston.guideLength, rod.area,
 			rodYield, rod.end.innerD, rod.end.friction, cylinder.mass, undefined, undefined);
 	} else if (cylinder.bucklingMethod == "en_static") {
-		var tubeYield = getYieldAndStrength(tube.thickness, tube.material);
-		var rodYield = getYieldAndStrength(rod.thickness, rod.material);
-		safetyFactor = safetyFactorEN(cylinder.force, cylinder.length/cylinder.euler, 
-			tube.length/tube.euler, tube.area, tube.inertia, tubeYield, rod.length/rod.euler,
+		
+		safetyFactor = safetyFactorEN(cylinder.force, cylinder.maxLength/cylinder.euler, 
+			tube.length/tube.euler, tube.area, tube.inertia, tubeYield, rod.maxLength/rod.euler,
 			rod.area, rod.inertia, rodYield, undefined, undefined);
 	}
 	return safetyFactor;
@@ -826,38 +821,41 @@ function bucklingForceCurve(cylinder) {
 	var tube = cylinder.tube;
 	var rod = cylinder.rod;
 	var piston = cylinder.piston;
+	var forceCurve = cylinder.forceCurve;
 	var stroke = undefined;
 	var force = undefined;
-	var dynamicLength = undefined;
-	var dynamicRodLength = undefined;
+	var cylinderLength = undefined;
+	var rodLength = undefined;
 	var data = [];
 	var safetyFactor = undefined;
+	var tubeYield = getYieldAndStrength(tube.thickness, tube.material)[0];
+	var rodYield = getYieldAndStrength(tube.thickness, tube.material)[0];
 	if (forceCurve.length < 2) {
 		return undefined;
 	}
 	for (var i = 0; i < forceCurve.length; i++) {
 		stroke = forceCurve[i].stroke;	
-		force = forceCurve[i].f;
-		dynamicRodLength = rod.minLength + stroke;
-		dynamicLength = tube.length + dynamicRodLength;
+		force = forceCurve[i].f * Math.pow(10, 3); // Force in N
+		cylinderLength = cylinder.minLength + stroke;
+		rodLength = rod.minLength + stroke;
 		if (cylinder.bucklingMethod == "simple_force") {
-			safetyFactor = safetyFactorSimple(force, dynamicLength/cylinder.euler, 
-				tube.length/tube.euler, tube.inertia, dynamicRodLength/rod.euler, 
+			safetyFactor = safetyFactorSimple(force, cylinderLength/cylinder.euler, 
+				tube.length/tube.euler, tube.inertia, rodLength/rod.euler, 
 				rod.inertia, undefined);
 		} else if (cylinder.bucklingMethod == "accurate_force") {
-			safetyFactor = safetyFactorAccurate(cylinder.length/cylinder.euler, 
-				tube.length/tube.euler, tube.inertia, rod.length/rod.euler, rod.inertia, 
+			safetyFactor = safetyFactorAccurate(force, cylinderLength/cylinder.euler, 
+				tube.length/tube.euler, tube.inertia, rodLength/rod.euler, rod.inertia, 
 				piston.guidingL, rod.area, rodYield, rod.end.innerD, rod.end.friction, 
 				cylinder.mass, undefined, undefined);
 		} else if (cylinder.bucklingMethod == "en_force") {
-			safetyFactor = safetyFactorEN(cylinder.force, cylinder.length/cylinder.euler, 
-				tube.length/tube.euler, tube.area, tube.inertia, tubeYield, rod.length/rod.euler,
+			safetyFactor = safetyFactorEN(force, cylinderLength/cylinder.euler, 
+				tube.length/tube.euler, tube.area, tube.inertia, tubeYield, rodLength/rod.euler,
 				rod.area, rod.inertia, rodYield, undefined, undefined);
 		}
-		data.push({safetyFactor: safetyFactor, stroke: stroke});
+		data.push({safetyFactor: safetyFactor, stroke: stroke, force: force});
 	}
-	data.sort((a,b) => (a.safetyFactor < b.safetyFactor) ? 1 
-		: (a.safetyFactor >= b.safetyFactor) ? -1 : 0);
+	data.sort((a,b) => (a.safetyFactor >= b.safetyFactor) ? 1 
+		: (a.safetyFactor < b.safetyFactor) ? -1 : 0);
 	return data[0];
 }
 
@@ -865,33 +863,42 @@ function bucklingPressureCurve(cylinder) {
 	var tube = cylinder.tube;
 	var rod = cylinder.rod;
 	var piston = cylinder.piston;
+	var pressureCurve = cylinder.pressureCurve;
 	var stroke = undefined;
 	var force = undefined;
-	var dynamicLength = undefined;
-	var dynamicRodLength = undefined;
+	var cylinderLength = undefined;
+	var rodLength = undefined;
 	var data = [];
 	var safetyFactor = undefined;
+	var tubeYield = getYieldAndStrength(tube.thickness, tube.material)[0];
+	var rodYield = getYieldAndStrength(tube.thickness, tube.material)[0];
 	if (pressureCurve.length < 2) {
 		return undefined;
 	}
 	for (var i = 0; i < pressureCurve.length; i++) {
 		stroke = pressureCurve[i].stroke;
-		force = 0.1 * pressureCurve[i].p * piston.area; // force in kN
-		dynamicRodLength = rod.length - piston.stroke + stroke;
-		dynamicLength = tube.length + dynamicRodLength;
+		force = pressureCurve[i].p * piston.area * Math.pow(10, -1); // force in N
+		rodLength = rod.minLength + stroke;
+		cylinderLength = tube.length + rodLength;
 		if (cylinder.bucklingMethod == "simple_pressure") {
-			safetyFactor = safetyFactorSimple(force, dynamicLength/cylinder.euler, 
-				tube.length/tube.euler, tube.inertia, dynamicRodLength/rod.euler, 
+			safetyFactor = safetyFactorSimple(force, cylinderLength/cylinder.euler, 
+				tube.length/tube.euler, tube.inertia, rodLength/rod.euler, 
 				rod.inertia, undefined);
 		} else if (cylinder.bucklingMethod == "accurate_pressure") {
-			safetyFactor = safetyFactorAccurate();
+			safetyFactor = safetyFactorAccurate(force, cylinderLength/cylinder.euler, 
+				tube.length/tube.euler, tube.inertia, rodLength/rod.euler, rod.inertia, 
+				piston.guidingL, rod.area, rodYield, rod.end.innerD, rod.end.friction, 
+				cylinder.mass, undefined, undefined);
+
 		} else if (cylinder.bucklingMethod == "en_pressure") {
-			safetyFactor = safetyFactorEN();
+			safetyFactor = safetyFactorEN(force, cylinderLength/cylinder.euler, 
+				tube.length/tube.euler, tube.area, tube.inertia, tubeYield, rodLength/rod.euler,
+				rod.area, rod.inertia, rodYield, undefined, undefined);
 		}
-		data.push({safetyFactor: safetyFactor, stroke: stroke});
+		data.push({safetyFactor: safetyFactor, stroke: stroke, force: force});
 	}
-	data.sort((a,b) => (a.safetyFactor < b.safetyFactor) ? 1 
-		: (a.safetyFactor >= b.safetyFactor) ? -1 : 0);
+	data.sort((a,b) => (a.safetyFactor >= b.safetyFactor) ? 1 
+		: (a.safetyFactor < b.safetyFactor) ? -1 : 0);
 	return data[0];
 }
 
@@ -4162,14 +4169,33 @@ define(function () {
 		desc: "Calculates safety factor [EN]",
           	ref: "DNVGL-ST-0194 [A.5]",
 		"rule": function rule(cylinder) {
-			var safetyFactorRequired = 2.0;
+			var requiredSafetyFactor = 2.0;
 			var safetyFactor = 0;
-			if (calcMethod == "en_static") {
+			var stroke = 0;
+			var data = null;
+			var preface = "The buckling safety factor is: ";
+			var condition = "";
+			var reference = "Please refer to $ref.";
+			if (cylinder.bucklingMethod == "en_static") {
 				safetyFactor = bucklingStatic(cylinder);
-			} else if (calcMethod == "en_force") {
-				var data = bucklingForceCurve(cylinder);
-			} else if (calcMethod == "en_pressure") {
-				var data = bucklingPressureCurve(cylinder);
+				stroke = cylinder.piston.stroke;
+			} else if (cylinder.bucklingMethod == "en_force") {
+				data = bucklingForceCurve(cylinder);
+				safetyFactor = data.safetyFactor;
+				stroke = data.stroke;
+			} else if (cylinder.bucklingMethod == "en_pressure") {
+				data = bucklingPressureCurve(cylinder);
+				safetyFactor = data.safetyFactor;
+				stroke = data.stroke;
+			}
+			if (safetyFactor < requiredSafetyFactor) {
+				condition = safetyFactor + " < " + requiredSafetyFactor + " at stroke "
+					+ stroke " mm. ";
+				this.error([], preface + condition + reference);
+			} else if (safetyFactor >= requiredSafetyFactor) {
+				condition = safetyFactor + " >= " + requiredSafetyFactor + " at stroke "
+					+ stroke " mm. ";
+				this.warn([], preface + condition + reference);
 			}
 		}
 	}, // End of EN buckling safety factor rule
