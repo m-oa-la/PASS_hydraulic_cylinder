@@ -857,7 +857,7 @@ function bucklingForceCurve(cylinder) {
 		data.push({safetyFactor: safetyFactor, stroke: stroke});
 	}
 	data.sort((a,b) => (a.safetyFactor < b.safetyFactor) ? 1 
-		: (a.safetyFactor >= b.safetyFactor) ? -1 : 0));
+		: (a.safetyFactor >= b.safetyFactor) ? -1 : 0);
 	return data[0];
 }
 
@@ -891,7 +891,7 @@ function bucklingPressureCurve(cylinder) {
 		data.push({safetyFactor: safetyFactor, stroke: stroke});
 	}
 	data.sort((a,b) => (a.safetyFactor < b.safetyFactor) ? 1 
-		: (a.safetyFactor >= b.safetyFactor) ? -1 : 0));
+		: (a.safetyFactor >= b.safetyFactor) ? -1 : 0);
 	return data[0];
 }
 
