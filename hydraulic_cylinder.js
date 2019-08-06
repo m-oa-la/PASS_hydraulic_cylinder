@@ -737,68 +737,6 @@ function calc_bolts(set, error, warn, part_name, d_n_bolt, L_p_bolt,
 	}
 } // End of calc_bolts function
 
-function calc_buckling_sf_acc(set, rodEnd, delta_clearance, d_i, d_end_eye_rod, d_o, E, g, I1, I2, L, 
-	L1, L2, L3, m_cyl, my_end_eye, sigma_rod, P_a) {
-	/* Calculates the safety factor for a buckling element according to the method
-	 * in DNVGL-ST-0194 [A.4.3]. 
-	 * arg set: Pointer for setting variables. 
-	 * arg delta_clearance: 
-	 * arg d_i: Piston rod inner diameter. 
-	 * arg d_end_eye_rod: End eye rod diameter. 
-	 * arg d_o: Piston rod outer diameter. 
-	 * arg E: E-modulus of the rod.
-	 * arg g: Gravitational acceleration.
-	 * arg I1: Second moment of inertia of the cylinder tube.
-	 * arg I2: Second moment of inertia of the cylinder rod.
-	 * arg L: Cylinder block length, sum of tube length and maximum visible rod length.
-	 * arg L1: Cylinder tube length.
-	 * arg L2: Maximum visible rod length (fully extracted).
-	 * arg L3: Guiding length of piston in cylinder tube.
-	 * arg m_cyl: Mass of the cylinder (?).
-	 * arg my_end_eye: Friction coefficient for the end eye.
-	 * arg sigma_rod: The nominal stress in the rod.
-	 * arg P_a: Buckling force in kN. */
-	var r, my = undefined, undefined;
-	if (rodEnd == "endEye") {
-		r = d_end_eye_rod/2;
-		my = my_end_eye;
-	} else {
-		r = 0;
-		my = 0;
-	}
-	var pi = Math.PI;
-	var f_y = sigma_rod;
-	var A = calcArea(d_o, d_i);
-	var alpa_cyl = pi * L2 / L;
-
-	var AA = L1 / (2 * I1) + L2 / (2 * I2) 
-		+ L / (4 * pi) * (1 / I1 - 1 / I2) * Math.sin(2 * alpa_cyl);
-	var BB = 4 * L / (3 * pi) * (1 / I2 - 1 / I1) * Math.pow(Math.sin(alpa_cyl), 3);
-	var CC = L1 / (2 * I1) + L2 / (2 * I2) 
-		+ L / (8 * pi) * (1 / I1 - 1 / I2) * Math.sin(4 * alpa_cyl);
-	var DD = Math.pow(pi, 2) * E / (2 * L) * 1000;
-
-	var a = 4 * AA * CC - BB * BB;
-	var b = -(4 * DD * (4 * AA + CC));
-	var c = 16 * Math.pow(DD, 2);
-
-	var P_E_acc = (-b - Math.sqrt(Math.pow(b, 2) - 4 * a * c)) / (2 * a) / 1000;
-	var f_0 = L1 * delta_clearance / (L * L3 * 2) 
-		* Math.sqrt(Math.pow(pi, 2) * E * I2 / P_E_acc);
-
-	var FF = d_o / (2 * I2) * (my * r + f_0);
-	var GG = m_cyl * g * L * d_o / (16 * I2);
-	var HH = Math.sqrt(1 + 2 * A * FF - 2 * f_y * A / P_E_acc 
-		+ Math.pow(FF, 2) * Math.pow(A, 2) + 2 * Math.pow(A, 2) * FF * f_y / P_E_acc 
-		+ Math.pow(f_y * A / P_E_acc, 2) + 4 * A * GG / P_E_acc);
-	var P = f_y * A / 2 + P_E_acc * (1 + A * FF - HH) / 2;
-	var SF_buckling_acc = P / (P_a * 1000);
-
-	set("SF_buckling_acc_" + L2, SF_buckling_acc);
-
-	return SF_buckling_acc;
-} // End of calc_buckling_sf_acc function
-
 function bucklingStatic(cylinder) {
 	var tube = cylinder.tube;
 	var rod = cylinder.rod;
