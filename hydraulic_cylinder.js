@@ -3885,35 +3885,44 @@ define(function () {
 
         // Buckling safety factor rule
         {
-		desc: "Calculates buckling safety factor",
+		desc: "Calculates buckling safety factor [simple]",
 		ref: "DNVGL-ST-0194 [3.2]",
 		"rule": function rule(cylinder) {
 			var requiredSafetyFactor = 4.0;
-			var safetyFactor = 0;
+			var safetyFactor = undefined;
 			var stroke = cylinder.piston.stroke;
-			var data = null;
+			var data = undefined;
 			var prefix = "The buckling safety factor is: ";
 			var condition = "";
 			var reference = "Please refer to $ref.";
+			var validCurve = true;
+			var curveError = "Insignificant input to perform buckling calculations. \
+				Force-stroke and pressure-stroke curves need at least two entries.";
 			if (cylinder.bucklingMethod == "simple_static") {
 				safetyFactor = bucklingStatic(cylinder);
 			} else if (cylinder.bucklingMethod == "simple_force") {
 				data = bucklingForceCurve(cylinder);
 				safetyFactor = data.safetyFactor;
 				stroke = data.stroke;
+				validCurve = (typeof safetyFactor != "undefined");
 			} else if (cylinder.bucklingMethod == "simple_pressure") {
 				data = bucklingPressureCurve(cylinder);
 				safetyFactor = data.safetyFactor;
 				stroke = data.stroke;
+				validCurve = (typeof safetyFactor != "undefined");
+			} else {
+				return;
 			}
 			if (safetyFactor < requiredSafetyFactor) {
 				condition = safetyFactor + " < " + requiredSafetyFactor + " at stroke "
 					+ stroke + " mm. ";
 				this.error([], prefix + condition + reference);
-			} else {
+			} else if (safetyFactor >= requiredSafetyFactor) {
 				condition = safetyFactor + " >= " + requiredSafetyFactor + " at stroke "
 					+ stroke + " mm. ";
 				this.warn([], prefix + condition + reference);
+			} else if (!validCurve) {
+				this.error([], curveError);
 			}
 	  } 
         },
@@ -3921,35 +3930,44 @@ define(function () {
 
         // Accurate buckling safety factor rule
 	{
-		desc: "Calculates safety factor [accurate]",
+		desc: "Calculates buckling safety factor [accurate]",
 		ref: "DNVGL-ST-0194 [A.4]",
 		"rule": function rule(cylinder) {
             		var requiredSafetyFactor = 2.7;
-			var safetyFactor = 0;
+			var safetyFactor = undefined;
 			var stroke = cylinder.piston.stroke;
-			var data = null;
+			var data = undefined;
 			var prefix = "The buckling safety factor is: ";
 			var condition = "";
 			var reference = "Please refer to $ref.";
+			var validCurve = true;
+			var curveError = "Insignificant input to perform buckling calculations. \
+				Force-stroke and pressure-stroke curves need at least two entries.";
 			if (cylinder.bucklingMethod == "accurate_static") {
 				safetyFactor = bucklingStatic(cylinder);
 			} else if (cylinder.bucklingMethod == "accurate_force") {
 				data = bucklingForceCurve(cylinder);
 				safetyFactor = data.safetyFactor;
 				stroke = data.stroke;
+				validCurve = (typeof safetyFactor != "undefined");
 			} else if (cylinder.bucklingMethod == "accurate_pressure") {
 				data = bucklingPressureCurve(cylinder);
 				safetyFactor = data.safetyFactor;
 				stroke = data.stroke;
+				validCurve = (typeof safetyFactor != "undefined");
+			} else {
+				return;
 			}
 			if (safetyFactor < requiredSafetyFactor) {
 				condition = safetyFactor + " < " + requiredSafetyFactor + " at stroke "
 					+ stroke + " mm. ";
 				this.error([], prefix + condition + reference);
-			} else {
+			} else if (safetyFactor >= requiredSafetyFactor) {
 				condition = safetyFactor + " >= " + requiredSafetyFactor + " at stroke "
 					+ stroke + " mm. ";
 				this.warn([], prefix + condition + reference);
+			} else if (!validCurve) {
+				this.error([], curveError);
 			}
 		}
         },
@@ -3957,36 +3975,43 @@ define(function () {
 	
 	// EN buckling safety factor rule
 	{
-		desc: "Calculates safety factor [EN]",
+		desc: "Calculates buckling safety factor [EN]",
           	ref: "DNVGL-ST-0194 [A.5]",
 		"rule": function rule(cylinder) {
 			var requiredSafetyFactor = 2.0;
-			var safetyFactor = 0;
-			var stroke = 0;
-			var data = null;
+			var safetyFactor = undefined;
+			var stroke = cylinder.piston.stroke;
+			var data = undefined;
 			var prefix = "The buckling safety factor is: ";
 			var condition = "";
 			var reference = "Please refer to $ref.";
+			var validCurve = true;
+			var curveError = "Insignificant input to perform buckling calculations. \
+				Force-stroke and pressure-stroke curves need at least two entries.";
 			if (cylinder.bucklingMethod == "en_static") {
 				safetyFactor = bucklingStatic(cylinder);
-				stroke = cylinder.piston.stroke;
 			} else if (cylinder.bucklingMethod == "en_force") {
 				data = bucklingForceCurve(cylinder);
 				safetyFactor = data.safetyFactor;
 				stroke = data.stroke;
+				validCurve = (typeof safetyFactor != "undefined");
 			} else if (cylinder.bucklingMethod == "en_pressure") {
 				data = bucklingPressureCurve(cylinder);
 				safetyFactor = data.safetyFactor;
 				stroke = data.stroke;
+			} else {
+				return;
 			}
 			if (safetyFactor < requiredSafetyFactor) {
 				condition = safetyFactor + " < " + requiredSafetyFactor + " at stroke "
 					+ stroke + " mm. ";
 				this.error([], prefix + condition + reference);
-			} else {
+			} else if (safetyFactor >= requiredSafetyFactor) {
 				condition = safetyFactor + " >= " + requiredSafetyFactor + " at stroke "
 					+ stroke + " mm. ";
 				this.warn([], prefix + condition + reference);
+			} else if (typeof safetyFactor == "undefined") {
+				this.error([], curveError);
 			}
 		}
 	}, // End of EN buckling safety factor rule
