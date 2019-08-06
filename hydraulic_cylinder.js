@@ -3647,10 +3647,18 @@ define(function () {
 		var Z = calcZFactor(I1, I2, eL, L1e, L2e_max);
 
 		var cylinder = configureCylinder(this);
+
+		var Pa = 0;
+		if (this.get("tubeEnd") == "trunnion" && this.get("rodInside") == "yes") {
+			Pa = Math.max(DPpush, DPpull) * Math.PI
+				* (Math.pow(DI,2) - Math.pow(OD_rod,2)) * (0.1 / 4000);
+		} else {
+			Pa = DPpush * Math.PI * Math.pow(DI,2) * (0.1 / 4000);
+		}
 		
 		// Assigning values to object variables
 		this.set("cylinder", cylinder);
-		this.set("Pa", cylinder.force);
+		this.set("Pa", Pa);
 		this.set("c", corrosionAllowance);
 		this.set("L", L);
 		this.set("L2min", L2min);
