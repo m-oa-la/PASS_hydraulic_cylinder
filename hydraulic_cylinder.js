@@ -1373,36 +1373,39 @@ define(function () {
 
           // Material data menu block
           {
-            title: "Material data",
-            name: "mblock",
-            multiple: true,
-            desc: "Add your materials for the project",
-            items: 
-            [
+		title: "Material data",
+		name: "mblock",
+		intro: "test",
+		multiple: true,
+		desc: "Add your materials for the project",
+		items: 
+            [ 
               // Material standard dropdown block
-              {
-                name: "material_define",
-                type: "input",
-                desc: "Material custom/standard",
-                help: {
-                  text: "Materials for cylinder tube, piston rod, end covers and end eyes shall \
-                    be delivered with 3.1 material certificates (according to EN 10204 or equivalent). \
-                    Approval of manufacturer is not required. For cylinders intended for steering gear \
-                    or water jet steering applications, 3.2 material certification is required for the \
-                    cylinder tube and piston rod. The end covers, end eye and piston shall be delivered \
-                    with 3.1 certificates."
-                },
-                ui: {
-                  type: "dropdown",
-                  options: [{
-                    text: "Standard materials",
-                    value: "standard"
-                  }, {
-                    text: "Custom defined materials",
-                    value: "custom"
-                  }]
-                }
-              },
+		{ 
+			name: "material_define",
+			type: "input",
+			desc: "Standard materials are evaluated at room temperature and accounts for varying \
+				thickness. Custom materials do not account for thickness, but let users \
+				specify yield strength at design temperature.",
+			help: {
+			  text: "Materials for cylinder tube, piston rod, end covers and end eyes shall \
+			    be delivered with 3.1 material certificates (according to EN 10204 or equivalent). \
+			    Approval of manufacturer is not required. For cylinders intended for steering gear \
+			    or water jet steering applications, 3.2 material certification is required for the \
+			    cylinder tube and piston rod. The end covers, end eye and piston shall be delivered \
+			    with 3.1 certificates."
+			},
+			ui: {
+			  type: "dropdown",
+			  options: [{
+			    text: "Standard materials",
+			    value: "standard"
+			  }, {
+			    text: "Custom defined materials",
+			    value: "custom"
+			  }]
+			}
+		},
               // Material type dropdown block
               {
                 name: "material_type",
