@@ -3665,14 +3665,16 @@ define(function () {
         // Impact test rule
         {
           desc: "Check impact test",
-          ref: "Pt.2 Ch.2 Sec.3",
+          ref: "DNVGL-ST-0194 [2.1.1]",
           rule: function rule(pv_func) 
           {
             if (pv_func != "waterjet")
             {
-              this.warn([], "Please remember that the steel is to be charpy V tested with a minimum impact \
-                energy of 27J transverse, alternatively 41 J longitudinal, at minimum design temperature. \
-                Please refer to $ref.");
+              this.warn([], "Please remember that the materials shall be Charpy-V impact tested \
+		      at minimum design temperature. Minimum specified average energy value \
+		      shall be as per relevant parts of DNVGL-RU-SHIP Pt.2 Ch.2. Please refer \
+		      to $ref.");
+                
             }
           }
         },
