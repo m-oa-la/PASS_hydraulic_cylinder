@@ -71,7 +71,7 @@ var f_y_1_4403 = [[0, 400, 225, 500]];
 ////////////////////// UTILITY FUNCTIONS ///////////////////////
 ////////////////////////////////////////////////////////////////
 
-function round_to_decimal(number, precision) {
+function roundToDecimal(number, precision) {
   /* Rounds a number to the closest decimal number with a given precision.
   :arg number: The number to be rounded.
   :arg precision: The number of decimals to be included in the rounding.
@@ -85,7 +85,7 @@ function round_to_decimal(number, precision) {
   {
     return Math.round(Math.pow(10, precision) * number) / Math.pow(10, precision);
   }
-} // End of round_to_decimal function
+} // End of roundToDecimal function
 
 function find_minimum(arr) {
 	if (arr.length == 0) {
@@ -561,10 +561,10 @@ function rule_thread_stress(set, error, warn, part_name, Md, xP, Le, DI, OD, mat
 	var max_shear = 0.8 * mat;
 	var mat2 = Math.min(material1[0], material2[0]);
 
-	fsh = round_to_decimal(fsh, 3);
-	fcomp = round_to_decimal(fcomp, 3);
-	max_shear = round_to_decimal(max_shear, 3);
-	mat2 = round_to_decimal(mat2, 3);
+	fsh = roundToDecimal(fsh, 3);
+	fcomp = roundToDecimal(fcomp, 3);
+	max_shear = roundToDecimal(max_shear, 3);
+	mat2 = roundToDecimal(mat2, 3);
 
 	set(part_name + "_f", mat);
 
@@ -697,10 +697,10 @@ function calc_bolts(set, error, warn, part_name, d_n_bolt, L_p_bolt,
 	set(part_name + "_" + "tau_shear_bolt", tau_shear_bolt);
 	set(part_name + "_" + "f_sh_bolt", f_sh_bolt);
 
-	l_thread_bolt_required= round_to_decimal(l_thread_bolt_required, 3);
-	tau_shear_bolt = round_to_decimal(tau_shear_bolt, 3);
-	f_sh_bolt= round_to_decimal(f_sh_bolt, 3);
-	A_s_bolt_required= round_to_decimal(A_s_bolt_required, 3);
+	l_thread_bolt_required= roundToDecimal(l_thread_bolt_required, 3);
+	tau_shear_bolt = roundToDecimal(tau_shear_bolt, 3);
+	f_sh_bolt= roundToDecimal(f_sh_bolt, 3);
+	A_s_bolt_required= roundToDecimal(A_s_bolt_required, 3);
 
 	if (l_thread_bolt_required > l_thread_bolt && tau_shear_bolt > f_sh_bolt) {
 		error([], "The required engagement length of the " + part_name 
@@ -848,7 +848,7 @@ function safetyFactorSimple(actualLoad, cylinderLength, tubeLength, tubeInertia,
 	var bucklingLoad = calcBucklingLoadSimple(tubeLength, tubeInertia, rodLength, rodInertia,
 		cylinderLength, E);
 	var safetyFactor = bucklingLoad/actualLoad;
-	return safetyFactor;
+	return roundToDecimal(safetyFactor, 3);
 }
 
 function calcBucklingLoadSimple(L1, I1, L2, I2, L, E) {
@@ -884,13 +884,7 @@ function safetyFactorAccurate(actualLoad, cylinderLength, cylinderMass, tubeLeng
 		rodLength, rodInertia, pistonGuideLength, rodArea, rodYield, rodEndDiameter,
 		frictionCoefficient, cylinderMass, E, delta, alpha);
 	var safetyFactor = bucklingLoad/actualLoad;
-	console.log("In safetyFactorAccurate: ")
-	console.log("- Cylinder: ", actualLoad, cylinderLength, cylinderMass)
-	console.log("- Tube: ", tubeLength, tubeInertia)
-	console.log("- Rod: ", rodLength, rodArea, rodInertia, rodYield, rodEndDiameter)
-	console.log("- Misc: ", frictionCoefficient, pistonGuideLength, E, delta, alpha)
-	console.log("- Loads: ", bucklingLoad, actualLoad)
-	return safetyFactor;
+	return roundToDecimal(safetyFactor, 3);
 }
 
 function calcBucklingLoadAccurate(L, L1, I1, L2, I2, L5, A, R, d, my, m, E, delta, alpha) {
@@ -930,13 +924,6 @@ function calcBucklingLoadAccurate(L, L1, I1, L2, I2, L5, A, R, d, my, m, E, delt
 	var HH = Math.sqrt(1 + 2*A*FF - 2*R*A/Pe + A*A*FF*FF + 2*A*A*FF*R/Pe
 		+ Math.pow(R*A/Pe, 2) + 4*A*GG/Pe);
 	var P = R*A/2 + (Pe/2)*(1 + A*FF - HH);
-
-	console.log("In calcBucklingLoadAccurate: ")
-	console.log("- Geom.: ", L, L1, I1, L2, I2, L5, A, d)
-	console.log("- Mat.: ", R, my, m, E, delta, alpha)
-	console.log("- Fac. 1: ", AA, BB, CC, DD)
-	console.log("- Fac. 2: ", a, b, c, Pe, f)
-	console.log("- Fac. 3: ", FF, GG, HH, P)
 	return P;
 }
 
@@ -967,7 +954,7 @@ function safetyFactorEN(actualLoad, cylinderLength, tubeLength, tubeArea, tubeIn
 	var rodLoad = rodCapacity * rodArea * rodYield;
 	var bucklingLoad = Math.min(tubeLoad, rodLoad);
 	var safetyFactor = bucklingLoad/actualLoad;
-	return safetyFactor;
+	return roundToDecimal(safetyFactor, 3);
 }
 
 function calcBucklingCapacity(Fe, A, Reh, alpha) {
@@ -1384,9 +1371,7 @@ define(function () {
 		{ 
 			name: "material_define",
 			type: "input",
-			desc: "Standard materials are evaluated at room temperature and accounts for varying \
-				thickness. Custom materials do not account for thickness, but let users \
-				specify yield strength at design temperature.",
+			desc: "Material custom/standard",
 			help: {
 			  text: "Materials for cylinder tube, piston rod, end covers and end eyes shall \
 			    be delivered with 3.1 material certificates (according to EN 10204 or equivalent). \
@@ -1398,7 +1383,7 @@ define(function () {
 			ui: {
 			  type: "dropdown",
 			  options: [{
-			    text: "Standard materials",
+			    text: "Standard materials (at room temperature)",
 			    value: "standard"
 			  }, {
 			    text: "Custom defined materials",
@@ -3720,7 +3705,7 @@ define(function () {
             }
 
             var min_required_pressure = 1.25 * wp;
-            min_required_pressure = round_to_decimal(min_required_pressure, 3);
+            min_required_pressure = roundToDecimal(min_required_pressure, 3);
 
             if (min_required_pressure > DPpush) 
             {
@@ -3776,8 +3761,8 @@ define(function () {
             var p_test_pull_req = 1.5 * DPpull;
             var p_test_push_req = 1.5 * DPpush;
 
-            p_test_pull_req = round_to_decimal(p_test_pull_req, 3);
-            p_test_push_req = round_to_decimal(p_test_push_req, 3);
+            p_test_pull_req = roundToDecimal(p_test_pull_req, 3);
+            p_test_push_req = roundToDecimal(p_test_push_req, 3);
 
             if (p_test_pull < p_test_pull_req)
             {
@@ -3881,8 +3866,8 @@ define(function () {
             var s_min = DP_max * OD / (20 * sigma_tube * v + DP_max) + c;
             this.set("s_min", s_min);
 
-            s_min = round_to_decimal(s_min, 3);
-            s_nom = round_to_decimal(s_nom, 3);
+            s_min = roundToDecimal(s_min, 3);
+            s_nom = roundToDecimal(s_nom, 3);
             if (!(s_nom >= s_min)) {
               this.error(["s_nom"], "According to $ref nominal tube thickness is not sufficient: " 
                 + s_min + " mm > " + s_nom + " mm.");
@@ -4051,8 +4036,8 @@ define(function () {
               var sigma_rod_end_eye = material[0];
               this.set("sigma_rod_end_eye", sigma_rod_end_eye);
 
-              sigma_rod_end_eye = round_to_decimal(sigma_rod_end_eye, 3);
-              t_rod = round_to_decimal(t_rod, 3);
+              sigma_rod_end_eye = roundToDecimal(sigma_rod_end_eye, 3);
+              t_rod = roundToDecimal(t_rod, 3);
               this.set("t_rod", t_rod);
 
               if (!(t_rod < sigma_rod_end_eye)) {
@@ -4078,7 +4063,7 @@ define(function () {
             var D_tube = R_tube * 2;
             var t_tube = F_pull * Math.sqrt(D_tube / d_tube * (D_tube / d_tube) 
               - D_tube / d_tube + 1) / (T_tube * (D_tube - d_tube));
-            t_tube = round_to_decimal(t_tube, 3); // (1000 * t_tube) /1000;
+            t_tube = roundToDecimal(t_tube, 3); // (1000 * t_tube) /1000;
             this.set("t_tube", t_tube);
             
             if (tubeEnd == "endEye") {
@@ -4193,7 +4178,7 @@ define(function () {
                   Dp = Md_sb - 0.6495 * xP_sb,
                   factors = [1.5, 1.5, 2.4],
                   f = Math.min(material2[0] / 1.5, material2[2] / 2.4);
-              f = round_to_decimal(f, 3);
+              f = roundToDecimal(f, 3);
               var ok = true;
               this.set("f_flaring", f);
               this.set("Dp", Dp);
@@ -4231,7 +4216,7 @@ define(function () {
 
                 _this.set("Fe_" + name, Fe);
                 _this.set("fb_" + name, fb);
-                fb = round_to_decimal(fb, 3);
+                fb = roundToDecimal(fb, 3);
                 if (fb > f) ok = false;
                 if (!ok) {
                   error([], "The flaring stress in the " + type + " thread for the stuffing \
@@ -4289,7 +4274,7 @@ define(function () {
               e_ec = e_ec2;
             }
 
-            e_ec = round_to_decimal(e_ec, 3);
+            e_ec = roundToDecimal(e_ec, 3);
             this.set("e_ec", e_ec);
             
             if (ect < e_ec) {
@@ -4415,7 +4400,7 @@ define(function () {
                 material, A_s_bolt_ec, n_bolts_ec, l_thread_bolt_ec, ecAttachment, F_pull, tubeEnd, Pa);
 
               var e_req_end_cover_bolted = 0.41 * C_bolt_circle * Math.sqrt(DPpush / 10 / sigma_ec);
-              e_req_end_cover_bolted = round_to_decimal(e_req_end_cover_bolted, 3);
+              e_req_end_cover_bolted = roundToDecimal(e_req_end_cover_bolted, 3);
               this.set("e_req_end_cover_bolted", e_req_end_cover_bolted);
 
               if (e_req_end_cover_bolted > ect)
@@ -4472,7 +4457,7 @@ define(function () {
               var data = getYieldAndStrength(thickness, material);
 
               var sigma_flange = data[0] / 1.5;
-              sigma_flange = round_to_decimal(sigma_flange, 3);
+              sigma_flange = roundToDecimal(sigma_flange, 3);
               this.set("sigma_flange", sigma_flange);
               var L_moment = (D_bolt_flange - OD) / 2;
               var F_per_segment = Math.max(Pa,F_pull*0.001) / n_bolt_flange * 1000;
@@ -4489,7 +4474,7 @@ define(function () {
               this.set("tau_shear", tau_shear);
 
               var sigma_eqi = Math.sqrt(Math.pow(sigma_bending, 2) + 3 * Math.pow(tau_shear, 2));
-              sigma_eqi = round_to_decimal(sigma_eqi, 3);
+              sigma_eqi = roundToDecimal(sigma_eqi, 3);
               this.set("sigma_eqi", sigma_eqi);
 
               if (sigma_eqi > sigma_flange)
@@ -4523,7 +4508,7 @@ define(function () {
               var data = getYieldAndStrength(thickness, material);
               var sigma_flange = Math.min(data[0] / 1.7, data[2] / 2.7);
 
-              sigma_flange = round_to_decimal(sigma_flange, 3);
+              sigma_flange = roundToDecimal(sigma_flange, 3);
               this.set("sigma_flange", sigma_flange);
 
               var L_moment = (D_bolt_flange - OD) / 2;
@@ -4546,7 +4531,7 @@ define(function () {
 
               var sigma_eqi = Math.sqrt(Math.pow(sigma_bending, 2) + 3 * Math.pow(tau_shear, 2) 
                 + 3 * Math.pow(tau_bending, 2));
-              sigma_eqi = round_to_decimal(sigma_eqi, 3);
+              sigma_eqi = roundToDecimal(sigma_eqi, 3);
               this.set("sigma_eqi", sigma_eqi);
 
               if (sigma_eqi > sigma_flange)
@@ -4576,7 +4561,7 @@ define(function () {
 
               var sigma_eqi_2 = Math.sqrt(Math.pow(sigma_bending_2, 2) 
                 + 3 * Math.pow(tau_shear_2, 2) + 3 * Math.pow(tau_bending_2, 2));
-              sigma_eqi_2 = round_to_decimal(sigma_eqi_2, 3);
+              sigma_eqi_2 = roundToDecimal(sigma_eqi_2, 3);
               this.set("sigma_eqi_2", sigma_eqi_2);
               
               if (sigma_eqi_2 > sigma_flange)
@@ -4642,7 +4627,7 @@ define(function () {
               var data = getYieldAndStrength(thickness, material);
 
               var sigma_flange = Math.min(data[0] / 1.7, data[2] / 2.7);
-              sigma_flange = round_to_decimal(sigma_flange, 3);
+              sigma_flange = roundToDecimal(sigma_flange, 3);
               this.set("sigma_flange", sigma_flange);
 
               if (flangedWeldType == "pPen") 
@@ -4670,7 +4655,7 @@ define(function () {
               this.set("tau_shear", tau_shear);
 
               var sigma_eqi = Math.sqrt(Math.pow(sigma_bending, 2) + 3 * Math.pow(tau_shear, 2));
-              sigma_eqi = round_to_decimal(sigma_eqi, 3);
+              sigma_eqi = roundToDecimal(sigma_eqi, 3);
               this.set("sigma_eqi", sigma_eqi);
 
               if (sigma_eqi > sigma_flange)
@@ -4696,7 +4681,7 @@ define(function () {
               this.set("tau_shear_2", tau_shear_2);
 
               var sigma_eqi_2 = Math.sqrt(Math.pow(sigma_bending_2, 2) + 3 * Math.pow(tau_shear_2, 2));
-              sigma_eqi_2 = round_to_decimal(sigma_eqi_2, 3);
+              sigma_eqi_2 = roundToDecimal(sigma_eqi_2, 3);
               this.set("sigma_eqi_2", sigma_eqi_2);
 
               if (sigma_eqi_2 > sigma_flange)
