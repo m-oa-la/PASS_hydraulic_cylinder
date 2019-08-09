@@ -472,7 +472,6 @@ function configurePiston(handle) {
 	piston["threadD"] = handle.get("Md_piston");
 	piston["threadP"] = handle.get("xP_piston");
 	piston["threadL"] = handle.get("Le_piston");
-	// TODO: Add piston area
 	var outerD = handle.get("DI");
 	var innerD = 0;
 	if (handle.get("tubeEnd") == "trunnion") {
@@ -738,6 +737,7 @@ function calc_bolts(set, error, warn, part_name, d_n_bolt, L_p_bolt,
 } // End of calc_bolts function
 
 function bucklingStatic(cylinder) {
+	var pi = Math.PI;
 	var tube = cylinder.tube;
 	var rod = cylinder.rod;
 	var piston = cylinder.piston;
@@ -748,8 +748,8 @@ function bucklingStatic(cylinder) {
 	} else if (cylinder.bucklingMethod == "accurate_static") {
 		safetyFactor = safetyFactorAccurate(cylinder.force, cylinder.maxLength/cylinder.euler, 
 			cylinder.mass, tube.length/tube.euler, tube.inertia, rod.maxLength/rod.euler,
-			rod.area, rod.inertia, rod.yield, rod.end.innerD, rod.end.friction, piston.guidingL,
-			undefined, undefined, undefined);
+			rod.area, rod.inertia, rod.yield, rod.outerD, rod.end.innerD, rod.end.friction, 
+			piston.guidingL/cylinder.euler, undefined, undefined, pi*rod.maxLength/cylinder.maxLength);
 	} else if (cylinder.bucklingMethod == "en_static") {
 		safetyFactor = safetyFactorEN(cylinder.force, cylinder.maxLength/cylinder.euler, 
 			tube.length/tube.euler, tube.area, tube.inertia, tube.yield, rod.maxLength/rod.euler,
@@ -759,6 +759,7 @@ function bucklingStatic(cylinder) {
 }
 
 function bucklingForceCurve(cylinder) {
+	var pi = Math.PI;
 	var tube = cylinder.tube;
 	var rod = cylinder.rod;
 	var piston = cylinder.piston;
@@ -767,6 +768,7 @@ function bucklingForceCurve(cylinder) {
 	var force = undefined;
 	var cylinderLength = undefined;
 	var rodLength = undefined;
+	var guidingLength = undefined;
 	var data = [];
 	var safetyFactor = undefined;
 	if (forceCurve.length < 2) {
@@ -777,15 +779,16 @@ function bucklingForceCurve(cylinder) {
 		force = forceCurve[i].f * Math.pow(10, 3); // Force in N
 		cylinderLength = cylinder.minLength + stroke;
 		rodLength = rod.minLength + stroke;
+		guidingLength = rod.maxLength - rodLength + piston.guidingL;
 		if (cylinder.bucklingMethod == "simple_force") {
 			safetyFactor = safetyFactorSimple(force, cylinderLength/cylinder.euler, 
 				tube.length/tube.euler, tube.inertia, rodLength/rod.euler, 
 				rod.inertia, undefined);
 		} else if (cylinder.bucklingMethod == "accurate_force") {
-			safetyFactor = safetyFactorAccurate(force, cylinder.maxLength/cylinder.euler, 
-				cylinder.mass, tube.length/tube.euler, tube.inertia, rod.maxLength/rod.euler,
-				rod.area, rod.inertia, rod.yield, rod.end.innerD, rod.end.friction, piston.guidingL,
-				undefined, undefined, undefined);
+			safetyFactor = safetyFactorAccurate(force, cylinderLength/cylinder.euler, 
+				cylinder.mass, tube.length/tube.euler, tube.inertia, rodLength/rod.euler,
+				rod.area, rod.inertia, rod.yield, rod.outerD, rod.end.innerD, rod.end.friction, 
+				guidingLength/cylinder.euler, undefined, undefined, pi*rodLength/cylinderLength);
 		} else if (cylinder.bucklingMethod == "en_force") {
 			safetyFactor = safetyFactorEN(force, cylinderLength/cylinder.euler, 
 				tube.length/tube.euler, tube.area, tube.inertia, tube.yield, rodLength/rod.euler,
@@ -799,6 +802,7 @@ function bucklingForceCurve(cylinder) {
 }
 
 function bucklingPressureCurve(cylinder) {
+	var pi = Math.PI;
 	var tube = cylinder.tube;
 	var rod = cylinder.rod;
 	var piston = cylinder.piston;
@@ -807,6 +811,7 @@ function bucklingPressureCurve(cylinder) {
 	var force = undefined;
 	var cylinderLength = undefined;
 	var rodLength = undefined;
+	var guidingLength = undefined;
 	var data = [];
 	var safetyFactor = undefined;
 	if (pressureCurve.length < 2) {
@@ -817,15 +822,16 @@ function bucklingPressureCurve(cylinder) {
 		force = pressureCurve[i].p * piston.area * Math.pow(10, -1); // force in N
 		rodLength = rod.minLength + stroke;
 		cylinderLength = tube.length + rodLength;
+		guidingLength = rod.maxLength - rodLength + piston.guidingL;
 		if (cylinder.bucklingMethod == "simple_pressure") {
 			safetyFactor = safetyFactorSimple(force, cylinderLength/cylinder.euler, 
 				tube.length/tube.euler, tube.inertia, rodLength/rod.euler, 
 				rod.inertia, undefined);
 		} else if (cylinder.bucklingMethod == "accurate_pressure") {
-			safetyFactor = safetyFactorAccurate(force, cylinder.maxLength/cylinder.euler, 
-				cylinder.mass, tube.length/tube.euler, tube.inertia, rod.maxLength/rod.euler,
-				rod.area, rod.inertia, rod.yield, rod.end.innerD, rod.end.friction, piston.guidingL,
-				undefined, undefined, undefined);
+			safetyFactor = safetyFactorAccurate(force, cylinderLength/cylinder.euler, 
+				cylinder.mass, tube.length/tube.euler, tube.inertia, rodLength/rod.euler,
+				rod.area, rod.inertia, rod.yield, rod.outerD, rod.end.innerD, rod.end.friction, guidingLength/cylinder.euler,
+				undefined, undefined, pi*rodLength/cylinderLength);
 		} else if (cylinder.bucklingMethod == "en_pressure") {
 			safetyFactor = safetyFactorEN(force, cylinderLength/cylinder.euler, 
 				tube.length/tube.euler, tube.area, tube.inertia, tube.yield, rodLength/rod.euler,
@@ -848,7 +854,17 @@ function safetyFactorSimple(actualLoad, cylinderLength, tubeLength, tubeInertia,
 	var bucklingLoad = calcBucklingLoadSimple(tubeLength, tubeInertia, rodLength, rodInertia,
 		cylinderLength, E);
 	var safetyFactor = bucklingLoad/actualLoad;
-	return roundToDecimal(safetyFactor, 3);
+  console.log("------------- In safetyFactorSimple -------------")
+  console.log("- actual load: ", actualLoad)
+  console.log("- buckling load: ", bucklingLoad)
+  console.log("- safetyFactor: ", safetyFactor)
+  console.log("- L: ", cylinderLength)
+  console.log("- L1: ", tubeLength)
+  console.log("- L2: ", rodLength)
+  console.log("- I1: ", tubeInertia)
+  console.log("- I2: ", rodInertia)
+  console.log("- E: ", E)
+  return roundToDecimal(safetyFactor, 3);
 }
 
 function calcBucklingLoadSimple(L1, I1, L2, I2, L, E) {
@@ -867,27 +883,34 @@ function calcBucklingLoadSimple(L1, I1, L2, I2, L, E) {
 }
 
 function safetyFactorAccurate(actualLoad, cylinderLength, cylinderMass, tubeLength, tubeInertia, 
-	rodLength, rodArea, rodInertia, rodYield, rodEndDiameter, frictionCoefficient, pistonGuideLength, 
+	rodLength, rodArea, rodInertia, rodYield, rodDiameter, rodEndEyeDiameter, frictionCoefficient, pistonGuideLength, 
 	E, delta, alpha) {
 	/* Calculates the buckling safety factor according to the method in [A.4.3]. */
+	var rodEndEyeRadius = null;
 	if (typeof E == "undefined") {
 		E = 206000;
 	}
 	if (typeof delta == "undefined") {
 		delta = 0.17;
 	}
-	if (typeof alpha == "undefined") {
-		alpha = 0.49;
+	if (typeof rodEndEyeDiameter == "undefined") {
+		rodEndEyeRadius = 0;
+	} else {
+		rodEndEyeRadius = rodEndEyeDiameter/2;
 	}
 
 	var bucklingLoad = calcBucklingLoadAccurate(cylinderLength, tubeLength, tubeInertia,
-		rodLength, rodInertia, pistonGuideLength, rodArea, rodYield, rodEndDiameter,
-		frictionCoefficient, cylinderMass, E, delta, alpha);
+		rodLength, rodInertia, pistonGuideLength, rodArea, rodYield, rodDiameter,
+		rodEndEyeRadius, frictionCoefficient, cylinderMass, E, delta, alpha);
 	var safetyFactor = bucklingLoad/actualLoad;
+		console.log("In safetyFactorAccurate: ")
+		console.log("- bucklingLoad: ", bucklingLoad)
+		console.log("- actualLoad: ", actualLoad)
+		console.log("- safetyFactor: ", safetyFactor)
 	return roundToDecimal(safetyFactor, 3);
 }
 
-function calcBucklingLoadAccurate(L, L1, I1, L2, I2, L5, A, R, d, my, m, E, delta, alpha) {
+function calcBucklingLoadAccurate(L, L1, I1, L2, I2, L5, A, R, d, r, my, m, E, delta, alpha) {
 	/* Calculates the buckling load according to [A.4.3].
 	 * arg L: float, cylinder length [mm]
 	 * arg L1: float, tube length [mm]
@@ -897,7 +920,8 @@ function calcBucklingLoadAccurate(L, L1, I1, L2, I2, L5, A, R, d, my, m, E, delt
 	 * arg L5: float, piston guide length [mm]
 	 * arg A: float, rod area [mm^2]
 	 * arg R: float, rod yield stress [MPA]
-	 * arg d: float, rod eye diameter [mm]
+	 * arg d: float, rod outer diameter [mm]
+	 * arg r: float, rod end eye inner diameter [mm]
 	 * arg my: float, rod eye friction coefficient [-]
 	 * arg m: float, cylinder mass [kg]
 	 * arg E: float, E-modulus [MPA]
@@ -905,7 +929,6 @@ function calcBucklingLoadAccurate(L, L1, I1, L2, I2, L5, A, R, d, my, m, E, delt
 	 * return: float*/
 	var pi = Math.PI;
 	var g = 9.81;
-	var r = d/2;
 
 	var AA = L1/(2*I1) + L2/(2*I2) + L/(4*pi) * (1/I1 - 1/I2) * Math.sin(2*alpha);
 	var BB = 4*L/(3*pi) * (1/I2 - 1/I1) * Math.pow(Math.sin(alpha), 3);
@@ -924,6 +947,33 @@ function calcBucklingLoadAccurate(L, L1, I1, L2, I2, L5, A, R, d, my, m, E, delt
 	var HH = Math.sqrt(1 + 2*A*FF - 2*R*A/Pe + A*A*FF*FF + 2*A*A*FF*R/Pe
 		+ Math.pow(R*A/Pe, 2) + 4*A*GG/Pe);
 	var P = R*A/2 + (Pe/2)*(1 + A*FF - HH);
+		console.log("------------- In calcBucklingLoadAccurate -------------")
+		console.log("- L: ", L)
+		console.log("- L1: ", L1)
+		console.log("- L2: ", L2)
+		console.log("- L5: ", L5)
+		console.log("- A: ", A)
+		console.log("- r: ", r)
+		console.log("- d: ", d)
+		console.log("- Reh: ", R)
+		console.log("- my: ", my)
+		console.log("- m: ", m)
+		console.log("- E: ", E)
+		console.log("- alpha: ", alpha)
+		console.log("- delta: ", delta)
+		console.log("- AA: ", AA)
+		console.log("- BB: ", BB)
+		console.log("- CC: ", CC)
+		console.log("- DD: ", DD)
+		console.log("- a: ", a)
+		console.log("- b: ", b)
+		console.log("- c: ", c)
+		console.log("- Pe: ", Pe)
+		console.log("- f: ", f)
+		console.log("- FF: ", FF)
+		console.log("- GG: ", GG)
+		console.log("- HH: ", HH)
+		console.log("- P: ", P)
 	return P;
 }
 
@@ -945,15 +995,27 @@ function safetyFactorEN(actualLoad, cylinderLength, tubeLength, tubeArea, tubeIn
 	if (typeof alpha == "undefined") {
 		alpha = 0.49;
 	}
-
+  console.log("------------- In safetyFactorEN -------------")
 	var criticalLoad = calcBucklingLoadSimple(tubeLength, tubeInertia, rodLength, rodInertia, 
 		cylinderLength, E);
+  console.log("- E: ", E)
+  console.log("- alpha: ", alpha)
+  console.log("- tubeYield: ", tubeYield)
+  console.log("- rodYield: ", rodYield)  
+  console.log("- actual load: ", actualLoad)
+	console.log("- critical load: ", criticalLoad)
+  console.log("- For tube: ")
 	var tubeCapacity = calcBucklingCapacity(criticalLoad, tubeArea, tubeYield, alpha);
 	var tubeLoad = tubeCapacity * tubeArea * tubeYield;
+  console.log("- tubeLoad: ", tubeLoad)
+  console.log("- For rod: ")
 	var rodCapacity = calcBucklingCapacity(criticalLoad, rodArea, rodYield, alpha);
 	var rodLoad = rodCapacity * rodArea * rodYield;
+  console.log("- rodLoad: ", rodLoad)
 	var bucklingLoad = Math.min(tubeLoad, rodLoad);
-	var safetyFactor = bucklingLoad/actualLoad;
+	var safetyFactor = bucklingLoad/actualLoad;		
+  console.log("- buckling load: ", bucklingLoad)
+  console.log("- safety factor: ", safetyFactor)
 	return roundToDecimal(safetyFactor, 3);
 }
 
@@ -966,7 +1028,10 @@ function calcBucklingCapacity(Fe, A, Reh, alpha) {
 	 * arg alpha: float, imperfection factor (0.49 for buckling curve c) [-] */
 	var lambda = Math.sqrt(A*Reh/Fe);
 	var phi = 0.5 * (1 + alpha*(lambda - 0.2) + Math.pow(lambda,2));
-	var chi = 1 / (phi*Math.sqrt(Math.pow(phi,2) - Math.pow(lambda,2)));
+	var chi = 1 / (phi + Math.sqrt(Math.pow(phi,2) - Math.pow(lambda,2)));
+  console.log("   - lambda: ", lambda)
+  console.log("   - phi: ", phi)
+  console.log("   - chi: ", chi)
 	return chi;
 }
 
@@ -3635,6 +3700,8 @@ define(function () {
 		var Z = calcZFactor(I1, I2, eL, L1e, L2e_max);
 
 		var cylinder = configureCylinder(this);
+    console.log("*************************************************************************")
+    console.log(cylinder)
 
 		var Pa = 0;
 		if (this.get("tubeEnd") == "trunnion" && this.get("rodInside") == "yes") {
